@@ -9,7 +9,7 @@
 // Todo es 100% local. No se envía nada a internet.
 // =============================================================================
 
-import { get, set, del, keys } from 'https://cdn.jsdelivr.net/npm/idb-keyval@6.2.1/+esm';
+import { get, set, del, keys } from './vendor/idb-keyval.js';
 import { DEFAULT_CONFIG } from './config.js';
 
 const K = {
@@ -66,6 +66,22 @@ export async function getCortes() {
 }
 export async function setCortes(cortes) {
   await set(K.CORTES, cortes);
+}
+
+/** Guarda un nuevo corte (ordena por fecha ascendente). */
+export async function guardarCorte(corte) {
+  const cortes = await getCortes();
+  cortes.push(corte);
+  cortes.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  await setCortes(cortes);
+  return cortes;
+}
+
+/** Elimina un corte por id. */
+export async function eliminarCorte(id) {
+  const cortes = (await getCortes()).filter((c) => c.id !== id);
+  await setCortes(cortes);
+  return cortes;
 }
 
 /** Devuelve el siguiente número de lote (incremental). */
