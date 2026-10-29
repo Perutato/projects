@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard de Asistencia y Alertas — Falabella Perú</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- Barra lateral de navegación -->
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-logo">FP</div>
+          <div class="brand-txt">
+            <strong>Asistencia &amp; Alertas</strong>
+            <small>Falabella Perú</small>
+          </div>
+        </div>
+        <nav class="nav">
+          <button data-vista="tienda" class="nav-btn">🏬 Tienda</button>
+          <button data-vista="logistica" class="nav-btn">📦 Logística</button>
+          <button data-vista="complementarios" class="nav-btn">🧩 Complementarios</button>
+          <button data-vista="alertas" class="nav-btn">🚨 Alertas</button>
+          <button data-vista="historico" class="nav-btn">🕓 Histórico</button>
+          <button data-vista="calidad" class="nav-btn">✅ Calidad</button>
+          <button data-vista="carga" class="nav-btn activo">📥 Carga</button>
+          <button data-vista="parametros" class="nav-btn">⚙️ Parámetros</button>
+        </nav>
+        <div class="privacidad">
+          🔒 Todo se procesa en tu navegador. No se envía nada a internet.
+        </div>
+      </aside>
+
+      <!-- Contenido principal -->
+      <main class="main">
+        <!-- CARGA -->
+        <section id="vista-carga" class="vista activa">
+          <header class="vista-head">
+            <h1>Carga de archivos</h1>
+            <div class="acciones">
+              <button id="btnRecalcular" class="btn">Recalcular</button>
+              <button id="btnLimpiar" class="btn btn-sec">Limpiar todo</button>
+            </div>
+          </header>
+
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple hidden />
+            <div class="dz-inner">
+              <div class="dz-icono">⬆️</div>
+              <p><strong>Arrastra aquí</strong> los archivos de Dotación, Asistencia o Tiempo Extra</p>
+              <p class="nota">o haz clic para elegir. Se aceptan .xlsx, .xls y .csv. El tipo se detecta por los encabezados.</p>
+            </div>
+          </div>
+
+          <div class="aviso-dotacion">
+            ⚠️ La <strong>Dotación</strong> es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado. La Dotación se reemplaza con la última cargada; Asistencia y Tiempo Extra se acumulan (se deduplica por persona-día, gana el archivo más reciente).
+          </div>
+
+          <h2>Datos cargados</h2>
+          <div id="inventario"></div>
+          <div id="resumenCarga" class="resumen-carga"></div>
+        </section>
+
+        <!-- CALIDAD -->
+        <section id="vista-calidad" class="vista">
+          <header class="vista-head"><h1>Calidad de datos</h1></header>
+          <div class="contenido">
+            <p class="vacio">Carga datos para ejecutar los controles de calidad.</p>
+          </div>
+        </section>
+
+        <!-- Placeholders de próximas fases -->
+        <section id="vista-tienda" class="vista"><div class="proxima">🏬 <b>Dashboard Tienda</b><p>Disponible en la Fase 2 (KPIs y dashboards).</p></div></section>
+        <section id="vista-logistica" class="vista"><div class="proxima">📦 <b>Dashboard Logística</b><p>Disponible en la Fase 2 (KPIs y dashboards).</p></div></section>
+        <section id="vista-complementarios" class="vista"><div class="proxima">🧩 <b>Complementarios</b><p>Disponible en la Fase 3.</p></div></section>
+        <section id="vista-alertas" class="vista"><div class="proxima">🚨 <b>Alertas por persona</b><p>Disponible en la Fase 3.</p></div></section>
+        <section id="vista-historico" class="vista"><div class="proxima">🕓 <b>Histórico de cortes</b><p>Disponible en la Fase 4.</p></div></section>
+        <section id="vista-parametros" class="vista"><div class="proxima">⚙️ <b>Parámetros</b><p>Disponible en la Fase 4.</p></div></section>
+      </main>
+    </div>
+
+    <!-- Barra de progreso -->
+    <div id="progreso" class="progreso">
+      <div class="barra"><div class="barra-anim"></div></div>
+      <span class="texto">Procesando…</span>
+    </div>
+
+    <!-- Toast de avisos -->
+    <div id="toast" class="toast"></div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
