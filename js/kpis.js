@@ -44,7 +44,9 @@ export function calcKpis(filas, cfg = DEFAULT_CONFIG) {
     teMin = 0,
     teHeaMin = 0,
     teFinalesMin = 0,
-    teNoReconocidasMin = 0;
+    teNoReconocidasMin = 0,
+    minAtrasoJust = 0,
+    minSalidaJust = 0;
 
   for (const f of filas) {
     personasSet.add(f.keyId);
@@ -61,6 +63,8 @@ export function calcKpis(filas, cfg = DEFAULT_CONFIG) {
     minSalidaAnt += f.adelantoS2;
     fugaMin += f.fugaMin;
     if (f.justificacionRegistrada === 'Sí') diasJustificacion++;
+    minAtrasoJust += f.minAtrasoJustificado;
+    minSalidaJust += f.minSalidaJustificada;
     minJustificados += f.minAtrasoJustificado + f.minSalidaJustificada;
     marcasManuales += f.marcasManuales;
     const completa = typeof f.tipoMarcacion === 'string' && f.tipoMarcacion.startsWith('Completa');
@@ -119,6 +123,14 @@ export function calcKpis(filas, cfg = DEFAULT_CONFIG) {
     hheeReconH: teFinalesMin / 60,
     hheeNoReconH: teNoReconocidasMin / 60,
     pctHHEERecon: teMin ? (teFinalesMin / teMin) * 100 : 0,
+    // Desviación de HHEE = Aprobadas (HEA) − Ejecutadas (negativo = sobre-ejecución).
+    desviacionHHEEH: (teHeaMin - teMin) / 60,
+    pctDesviacionHHEE: teMin ? ((teHeaMin - teMin) / teMin) * 100 : 0,
+    // Horas para gráficos de barras apiladas.
+    tardanzaH: minTardanza / 60,
+    salidaAntH: minSalidaAnt / 60,
+    minAtrasoJustH: minAtrasoJust / 60,
+    minSalidaJustH: minSalidaJust / 60,
   };
 }
 
@@ -259,22 +271,44 @@ export function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
 
   const graficos = {
     gr01: top15.map((s) => ({ sucursal: s.sucursal, valor: s.pctAsistencia })),
-    gr02: [...porSuc].sort((a, b) => b.tardanzasDias - a.tardanzasDias).slice(0, 15)
-      .map((s) => ({ sucursal: s.sucursal, valor: s.tardanzasDias })),
-    gr03: [...porSuc].sort((a, b) => b.diasNoPlan - a.diasNoPlan).slice(0, 15)
-      .map((s) => ({ sucursal: s.sucursal, dias: s.diasNoPlan, trabajadores: s.trabajadoresNoPlan })),
-    gr04: [...porSuc].sort((a, b) => b.fugaHporFisc - a.fugaHporFisc).slice(0, 15)
-      .map((s) => ({ sucursal: s.sucursal, valor: s.fugaHporFisc })),
-    gr05: serieTemporal(base, filtros.granularidad || 'dia', cfg),
+    // Planificación: días no planificados + trabajadores afectados (badge).
+    gr02: [...porSuc].sort((a, b) => b.diasNoPlan - a.diasNoPlan).filter((s) => s.diasNoPlan > 0).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, valor: s.diasNoPlan, badge: s.trabajadoresNoPlan })),
+    // Justificaciones por sucursal (días con justificación).
+    gr03: [...porSuc].sort((a, b) => b.diasJustificacion - a.diasJustificacion).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, valor: s.diasJustificacion })),
+    // Control de accesos: horas justificadas (atrasos vs salidas) apiladas.
+    gr04: [...porSuc].sort((a, b) => b.minAtrasoJustH + b.minSalidaJustH - (a.minAtrasoJustH + a.minSalidaJustH)).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, a: s.minAtrasoJustH, b: s.minSalidaJustH })),
+    // Disciplina operativa: fuga tardanzas vs salidas anticipadas (apiladas).
+    gr05: [...porSuc].sort((a, b) => b.fugaH - a.fugaH).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, a: s.tardanzaH, b: s.salidaAntH })),
     gr06: {
       completa: kpis.marcacionCompleta,
       incompleta: kpis.marcacionIncompleta,
       sinMarcacion: kpis.diasSinMarcacion,
       faltaInjust: kpis.faltasInjust,
     },
-    gr07: [...porSuc].sort((a, b) => b.hheeEjecH - a.hheeEjecH).slice(0, 15)
-      .map((s) => ({ sucursal: s.sucursal, ejecutadas: s.hheeEjecH, reconocidas: s.hheeReconH })),
-    gr08: top15.map((s) => ({ sucursal: s.sucursal, valor: s.pctMalla })),
+    // HHEE: ejecutadas vs aprobadas vs cumplidas (reconocidas).
+    gr07: [...porSuc].sort((a, b) => b.hheeEjecH - a.hheeEjecH).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, ejecutadas: s.hheeEjecH, aprobadas: s.hheeAutH, cumplidas: s.hheeReconH })),
+    // Auditoría HHEE: brecha (aprobadas − ejecutadas), divergente.
+    gr08: [...porSuc].filter((s) => s.hheeEjecH > 0 || s.hheeAutH > 0).sort((a, b) => a.desviacionHHEEH - b.desviacionHHEEH).slice(0, 14)
+      .map((s) => ({ sucursal: s.sucursal, valor: s.desviacionHHEEH })),
+    // Malla por sucursal.
+    gr09: top15.map((s) => ({ sucursal: s.sucursal, valor: s.pctMalla })),
+    // Tendencia temporal.
+    tendencia: serieTemporal(base, filtros.granularidad || 'dia', cfg),
+  };
+
+  // Diagnóstico ejecutivo: tres prioridades del período.
+  const peorNoPlan = [...porSuc].filter((s) => s.diasNoPlan > 0).sort((a, b) => b.diasNoPlan - a.diasNoPlan)[0] || null;
+  const peorFuga = [...porSuc].filter((s) => s.fugaH > 0).sort((a, b) => b.fugaH - a.fugaH)[0] || null;
+  const peorDesv = [...porSuc].filter((s) => s.desviacionHHEEH < 0).sort((a, b) => a.desviacionHHEEH - b.desviacionHHEEH)[0] || null;
+  const diagnostico = {
+    planificacion: peorNoPlan && { sucursal: peorNoPlan.sucursal, dias: peorNoPlan.diasNoPlan, trabajadores: peorNoPlan.trabajadoresNoPlan },
+    fuga: peorFuga && { sucursal: peorFuga.sucursal, horas: peorFuga.fugaH, trabajadores: peorFuga.personasTardanza },
+    hhee: peorDesv && { sucursal: peorDesv.sucursal, desviacion: peorDesv.desviacionHHEEH },
   };
 
   return {
@@ -283,6 +317,7 @@ export function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
     porSucursal: porSuc,
     top5: { peorAsistencia: top5PeorAsistencia, tardanzas: top5Tardanzas, noPlan: top5NoPlan },
     graficos,
+    diagnostico,
     nFilas: base.length,
   };
 }

@@ -342,6 +342,97 @@ h3 { font-size: 15px; margin: 22px 0 8px; }
 .busqueda-wrap .ico { position: absolute; left: 9px; width: 15px; height: 15px; color: var(--txt-suave); pointer-events: none; }
 .busqueda-wrap .input-busqueda { padding-left: 30px; }
 
+/* ===========================================================================
+   Dashboard ejecutivo (estilo retail)
+   =========================================================================== */
+/* Banner superior */
+.exec-banner { border-radius: 14px; padding: 22px 26px; margin-bottom: 18px; color: #fff; position: relative; overflow: hidden; }
+.banner-tienda { background: linear-gradient(120deg, #15314c 0%, #1f4e78 55%, #2f6ca3 100%); }
+.banner-log { background: linear-gradient(120deg, #1d3016 0%, #375623 55%, #4e7a32 100%); }
+.exec-banner::after { content: ''; position: absolute; right: -60px; top: -60px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(255,255,255,0.10), transparent 70%); }
+.eb-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.eb-dot { width: 8px; height: 8px; border-radius: 50%; background: #c9e265; box-shadow: 0 0 0 3px rgba(201,226,101,0.25); }
+.eb-eyebrow { font-size: 11px; letter-spacing: 0.1em; font-weight: 700; color: #c9e265; }
+.banner-tienda .eb-eyebrow, .banner-tienda .eb-dot { color: #ffd84d; background: #ffd84d; }
+.banner-tienda .eb-eyebrow { background: none; }
+.eb-title { font-size: 26px; margin: 0 0 4px; font-weight: 700; }
+.eb-sub { margin: 0 0 12px; color: rgba(255,255,255,0.82); font-size: 13.5px; max-width: 720px; }
+.eb-badge { display: inline-block; background: rgba(255,255,255,0.16); border-radius: 999px; padding: 5px 13px; font-size: 12.5px; margin-right: 8px; }
+.eb-badge-ghost { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
+.eb-nota { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; font-size: 12px; color: rgba(255,255,255,0.78); }
+.eb-nota .ico { width: 15px; height: 15px; margin-top: 1px; color: #ffd84d; }
+.eb-nota em { color: #fff; font-style: italic; }
+
+/* Alerta de dotación reducida */
+.alerta-dotacion:empty { display: none; }
+.alerta-dotacion { display: flex; gap: 9px; align-items: center; background: #fff8e6; border: 1px solid #f0dca8; color: #6b5713; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; }
+.alerta-dotacion .ico { width: 17px; height: 17px; color: var(--ambar); }
+
+/* Hero KPIs */
+.hero-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.hero-card { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 15px 16px 14px; box-shadow: var(--sombra); border-top: 3px solid var(--borde); position: relative; }
+.hero-card.acc-ok { border-top-color: var(--ok); }
+.hero-card.acc-amber { border-top-color: var(--ambar); }
+.hero-card.acc-rojo { border-top-color: var(--error); }
+.hero-card.acc-teal { border-top-color: #0f9b8e; }
+.hero-card.acc-blue { border-top-color: #2f80c0; }
+.hero-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.hero-ico { display: inline-flex; width: 34px; height: 34px; border-radius: 9px; background: #f0f4f9; color: var(--tienda); align-items: center; justify-content: center; }
+.acc-ok .hero-ico { background: var(--ok-bg); color: var(--ok); }
+.acc-amber .hero-ico { background: #fff3d6; color: var(--ambar); }
+.acc-rojo .hero-ico { background: var(--error-bg); color: var(--error); }
+.acc-teal .hero-ico { background: #e0f5f2; color: #0f9b8e; }
+.acc-blue .hero-ico { background: #e6f0fa; color: #2f80c0; }
+.hero-ico .ico { width: 19px; height: 19px; }
+.hero-help { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--borde); color: var(--txt-suave); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
+.hero-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--txt-suave); font-weight: 600; }
+.hero-val { font-size: 27px; font-weight: 700; color: var(--txt); margin: 3px 0 2px; font-variant-numeric: tabular-nums; }
+.hero-sub { font-size: 12px; color: var(--txt-suave); }
+
+/* Diagnóstico ejecutivo */
+.diag-wrap:empty { display: none; }
+.diag-wrap { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 18px 20px; margin-bottom: 22px; box-shadow: var(--sombra); }
+.diag-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.diag-head h2 { margin: 0; font-size: 17px; }
+.diag-titular { background: #f6f9fc; border-left: 3px solid var(--tienda); border-radius: 8px; padding: 11px 15px; font-size: 13.5px; color: var(--txt); margin-bottom: 14px; }
+.diag-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.diag-card { border: 1px solid var(--borde); border-radius: 10px; padding: 14px 16px; border-top: 3px solid var(--error); }
+.diag-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.diag-num { background: #0f2436; color: #fff; font-size: 11px; font-weight: 700; width: 24px; height: 24px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
+.diag-tag { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--txt-suave); font-weight: 700; }
+.diag-suc { font-size: 15px; font-weight: 600; }
+.diag-val { font-size: 23px; font-weight: 700; color: var(--error); margin: 2px 0; font-variant-numeric: tabular-nums; }
+.diag-desc { font-size: 12.5px; color: var(--txt-suave); margin-bottom: 10px; }
+.diag-accion { font-size: 12px; color: var(--txt); background: #fbfcfe; border-radius: 7px; padding: 8px 10px; }
+.diag-accion span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--error); font-weight: 700; margin-bottom: 2px; }
+
+/* Bloques y numeración de secciones */
+.bloque { margin-bottom: 26px; }
+.bloque-titulo { display: flex; align-items: center; gap: 10px; font-size: 16px; margin: 0 0 14px; }
+.sec-num { background: #0f2436; color: #fff; font-size: 11px; font-weight: 700; min-width: 28px; height: 24px; padding: 0 6px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Tarjetas de gráfico */
+.chart-card { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 14px 16px 10px; box-shadow: var(--sombra); display: flex; flex-direction: column; }
+.chart-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+.cch-left { display: flex; gap: 10px; align-items: flex-start; }
+.cch-left h3 { margin: 0; font-size: 14px; }
+.chart-sub { margin: 2px 0 0; font-size: 11.5px; color: var(--txt-suave); }
+.grafico-body { height: 330px; width: 100%; }
+.btn-exp { background: #fff; border: 1px solid var(--borde); border-radius: 7px; padding: 5px 10px; cursor: pointer; font-size: 12px; color: var(--txt-suave); display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.btn-exp:hover { background: #f0f4f9; color: var(--tienda); border-color: var(--tienda); }
+.btn-exp .ico { width: 14px; height: 14px; }
+
+/* Cabecera de reconciliación */
+.recon-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+.recon-head .bloque-titulo { margin: 0; }
+.tabla-suc thead th { background: #213547; color: #fff; box-shadow: none; border-bottom: none; }
+.tabla-suc thead th.ordenado { color: #ffd84d; }
+.tabla-suc thead th .ico-xs { color: #ffd84d; }
+
+@media (max-width: 980px) {
+  .grafico-body { height: 300px; }
+}
+
 /* ---- Impresión / PDF ---- */
 @media print {
   .sidebar, .acciones, .dropzone, .progreso, .toast { display: none !important; }
@@ -1906,7 +1997,9 @@ function calcKpis(filas, cfg = DEFAULT_CONFIG) {
     teMin = 0,
     teHeaMin = 0,
     teFinalesMin = 0,
-    teNoReconocidasMin = 0;
+    teNoReconocidasMin = 0,
+    minAtrasoJust = 0,
+    minSalidaJust = 0;
 
   for (const f of filas) {
     personasSet.add(f.keyId);
@@ -1923,6 +2016,8 @@ function calcKpis(filas, cfg = DEFAULT_CONFIG) {
     minSalidaAnt += f.adelantoS2;
     fugaMin += f.fugaMin;
     if (f.justificacionRegistrada === 'Sí') diasJustificacion++;
+    minAtrasoJust += f.minAtrasoJustificado;
+    minSalidaJust += f.minSalidaJustificada;
     minJustificados += f.minAtrasoJustificado + f.minSalidaJustificada;
     marcasManuales += f.marcasManuales;
     const completa = typeof f.tipoMarcacion === 'string' && f.tipoMarcacion.startsWith('Completa');
@@ -1981,6 +2076,14 @@ function calcKpis(filas, cfg = DEFAULT_CONFIG) {
     hheeReconH: teFinalesMin / 60,
     hheeNoReconH: teNoReconocidasMin / 60,
     pctHHEERecon: teMin ? (teFinalesMin / teMin) * 100 : 0,
+    // Desviación de HHEE = Aprobadas (HEA) − Ejecutadas (negativo = sobre-ejecución).
+    desviacionHHEEH: (teHeaMin - teMin) / 60,
+    pctDesviacionHHEE: teMin ? ((teHeaMin - teMin) / teMin) * 100 : 0,
+    // Horas para gráficos de barras apiladas.
+    tardanzaH: minTardanza / 60,
+    salidaAntH: minSalidaAnt / 60,
+    minAtrasoJustH: minAtrasoJust / 60,
+    minSalidaJustH: minSalidaJust / 60,
   };
 }
 
@@ -2121,22 +2224,44 @@ function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
 
   const graficos = {
     gr01: top15.map((s) => ({ sucursal: s.sucursal, valor: s.pctAsistencia })),
-    gr02: [...porSuc].sort((a, b) => b.tardanzasDias - a.tardanzasDias).slice(0, 15)
-      .map((s) => ({ sucursal: s.sucursal, valor: s.tardanzasDias })),
-    gr03: [...porSuc].sort((a, b) => b.diasNoPlan - a.diasNoPlan).slice(0, 15)
-      .map((s) => ({ sucursal: s.sucursal, dias: s.diasNoPlan, trabajadores: s.trabajadoresNoPlan })),
-    gr04: [...porSuc].sort((a, b) => b.fugaHporFisc - a.fugaHporFisc).slice(0, 15)
-      .map((s) => ({ sucursal: s.sucursal, valor: s.fugaHporFisc })),
-    gr05: serieTemporal(base, filtros.granularidad || 'dia', cfg),
+    // Planificación: días no planificados + trabajadores afectados (badge).
+    gr02: [...porSuc].sort((a, b) => b.diasNoPlan - a.diasNoPlan).filter((s) => s.diasNoPlan > 0).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, valor: s.diasNoPlan, badge: s.trabajadoresNoPlan })),
+    // Justificaciones por sucursal (días con justificación).
+    gr03: [...porSuc].sort((a, b) => b.diasJustificacion - a.diasJustificacion).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, valor: s.diasJustificacion })),
+    // Control de accesos: horas justificadas (atrasos vs salidas) apiladas.
+    gr04: [...porSuc].sort((a, b) => b.minAtrasoJustH + b.minSalidaJustH - (a.minAtrasoJustH + a.minSalidaJustH)).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, a: s.minAtrasoJustH, b: s.minSalidaJustH })),
+    // Disciplina operativa: fuga tardanzas vs salidas anticipadas (apiladas).
+    gr05: [...porSuc].sort((a, b) => b.fugaH - a.fugaH).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, a: s.tardanzaH, b: s.salidaAntH })),
     gr06: {
       completa: kpis.marcacionCompleta,
       incompleta: kpis.marcacionIncompleta,
       sinMarcacion: kpis.diasSinMarcacion,
       faltaInjust: kpis.faltasInjust,
     },
-    gr07: [...porSuc].sort((a, b) => b.hheeEjecH - a.hheeEjecH).slice(0, 15)
-      .map((s) => ({ sucursal: s.sucursal, ejecutadas: s.hheeEjecH, reconocidas: s.hheeReconH })),
-    gr08: top15.map((s) => ({ sucursal: s.sucursal, valor: s.pctMalla })),
+    // HHEE: ejecutadas vs aprobadas vs cumplidas (reconocidas).
+    gr07: [...porSuc].sort((a, b) => b.hheeEjecH - a.hheeEjecH).slice(0, 12)
+      .map((s) => ({ sucursal: s.sucursal, ejecutadas: s.hheeEjecH, aprobadas: s.hheeAutH, cumplidas: s.hheeReconH })),
+    // Auditoría HHEE: brecha (aprobadas − ejecutadas), divergente.
+    gr08: [...porSuc].filter((s) => s.hheeEjecH > 0 || s.hheeAutH > 0).sort((a, b) => a.desviacionHHEEH - b.desviacionHHEEH).slice(0, 14)
+      .map((s) => ({ sucursal: s.sucursal, valor: s.desviacionHHEEH })),
+    // Malla por sucursal.
+    gr09: top15.map((s) => ({ sucursal: s.sucursal, valor: s.pctMalla })),
+    // Tendencia temporal.
+    tendencia: serieTemporal(base, filtros.granularidad || 'dia', cfg),
+  };
+
+  // Diagnóstico ejecutivo: tres prioridades del período.
+  const peorNoPlan = [...porSuc].filter((s) => s.diasNoPlan > 0).sort((a, b) => b.diasNoPlan - a.diasNoPlan)[0] || null;
+  const peorFuga = [...porSuc].filter((s) => s.fugaH > 0).sort((a, b) => b.fugaH - a.fugaH)[0] || null;
+  const peorDesv = [...porSuc].filter((s) => s.desviacionHHEEH < 0).sort((a, b) => a.desviacionHHEEH - b.desviacionHHEEH)[0] || null;
+  const diagnostico = {
+    planificacion: peorNoPlan && { sucursal: peorNoPlan.sucursal, dias: peorNoPlan.diasNoPlan, trabajadores: peorNoPlan.trabajadoresNoPlan },
+    fuga: peorFuga && { sucursal: peorFuga.sucursal, horas: peorFuga.fugaH, trabajadores: peorFuga.personasTardanza },
+    hhee: peorDesv && { sucursal: peorDesv.sucursal, desviacion: peorDesv.desviacionHHEEH },
   };
 
   return {
@@ -2145,6 +2270,7 @@ function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
     porSucursal: porSuc,
     top5: { peorAsistencia: top5PeorAsistencia, tardanzas: top5Tardanzas, noPlan: top5NoPlan },
     graficos,
+    diagnostico,
     nFilas: base.length,
   };
 }
@@ -3463,7 +3589,93 @@ function mallaPorSucursal(id, titulo, datos, color, meta = 95) {
   }, true);
 }
 
-return { resizeTodos, limpiarGraficos, barrasHorizontales, dobleSerie, tendencia, anillo, hheeComparado, evolucionCortes, mallaPorSucursal };
+// --- Nuevos tipos de gráficos (estilo ejecutivo) ----------------------------
+
+/** Barras horizontales con etiqueta de valor + badge (p.ej. trabajadores). */
+function barrasConBadge(id, titulo, datos, color, sufijo = '', etiquetaBadge = 'pers.') {
+  const inst = obtener(id);
+  if (!inst) return;
+  const arr = [...datos].reverse();
+  const cats = arr.map((d) => recortar(d.sucursal));
+  inst.setOption({
+    title: tit(titulo),
+    grid: { ...grid, right: 70 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' } },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false } },
+    series: [{
+      type: 'bar', data: arr.map((d) => d.valor), itemStyle: { color, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18,
+      label: {
+        show: true, position: 'right', color: '#5a6b7b', fontSize: 10.5, fontFamily: FUENTE,
+        formatter: (p) => `${p.value}${sufijo}` + (arr[p.dataIndex].badge != null ? `  ·  ${arr[p.dataIndex].badge} ${etiquetaBadge}` : ''),
+      },
+    }],
+  }, true);
+}
+
+/** Barras horizontales apiladas de dos series (ej. tardanzas vs salidas). */
+function barrasApiladas(id, titulo, datos, nombreA, nombreB, colorA, colorB, sufijo = '') {
+  const inst = obtener(id);
+  if (!inst) return;
+  const arr = [...datos].reverse();
+  const cats = arr.map((d) => recortar(d.sucursal));
+  const et = { show: true, color: '#fff', fontSize: 9.5, fontFamily: FUENTE, formatter: (p) => (p.value > 0 ? (+p.value).toFixed(1) + sufijo : '') };
+  inst.setOption({
+    title: tit(titulo),
+    grid: { ...grid, bottom: 34, right: 20 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + sufijo },
+    legend: { bottom: 0, textStyle: ejeTxt, itemWidth: 12, itemHeight: 12 },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false } },
+    series: [
+      { name: nombreA, type: 'bar', stack: 't', data: arr.map((d) => +d.a.toFixed(1)), itemStyle: { color: colorA }, barMaxWidth: 18, label: et },
+      { name: nombreB, type: 'bar', stack: 't', data: arr.map((d) => +d.b.toFixed(1)), itemStyle: { color: colorB, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18, label: et },
+    ],
+  }, true);
+}
+
+/** Barras horizontales agrupadas de 3 series (ejecutadas/aprobadas/cumplidas). */
+function barrasAgrupadas3(id, titulo, datos, colores, sufijo = ' h') {
+  const inst = obtener(id);
+  if (!inst) return;
+  const arr = [...datos].reverse();
+  const cats = arr.map((d) => recortar(d.sucursal));
+  const serie = (nombre, key, color) => ({
+    name: nombre, type: 'bar', data: arr.map((d) => +d[key].toFixed(1)), itemStyle: { color, borderRadius: [0, 2, 2, 0] }, barMaxWidth: 9,
+    label: { show: true, position: 'right', color: '#5a6b7b', fontSize: 9, fontFamily: FUENTE, formatter: (p) => (+p.value).toFixed(0) },
+  });
+  inst.setOption({
+    title: tit(titulo),
+    grid: { ...grid, bottom: 34, right: 44 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + sufijo },
+    legend: { bottom: 0, textStyle: ejeTxt, itemWidth: 12, itemHeight: 12 },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false } },
+    series: [serie('Ejecutadas', 'ejecutadas', colores[0]), serie('Aprobadas', 'aprobadas', colores[1]), serie('Cumplidas', 'cumplidas', colores[2])],
+  }, true);
+}
+
+/** Barras horizontales divergentes (negativo rojo a la izquierda, positivo azul). */
+function barrasDivergentes(id, titulo, datos, sufijo = ' h') {
+  const inst = obtener(id);
+  if (!inst) return;
+  const arr = [...datos].reverse();
+  const cats = arr.map((d) => recortar(d.sucursal));
+  inst.setOption({
+    title: tit(titulo),
+    grid: { ...grid, left: 8, right: 60 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + sufijo },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false }, position: 'right' },
+    series: [{
+      type: 'bar', data: arr.map((d) => ({ value: +d.valor.toFixed(1), itemStyle: { color: d.valor < 0 ? '#c0392b' : '#2f80c0', borderRadius: d.valor < 0 ? [3, 0, 0, 3] : [0, 3, 3, 0] } })),
+      barMaxWidth: 16,
+      label: { show: true, position: 'left', color: '#5a6b7b', fontSize: 10, fontFamily: FUENTE, formatter: (p) => (+p.value).toFixed(0) + sufijo },
+    }],
+  }, true);
+}
+
+return { resizeTodos, limpiarGraficos, barrasHorizontales, dobleSerie, tendencia, anillo, hheeComparado, evolucionCortes, mallaPorSucursal, barrasConBadge, barrasApiladas, barrasAgrupadas3, barrasDivergentes };
 });
 __def("exports", function(__require){
 // =============================================================================
@@ -3733,6 +3945,7 @@ function crearDashboards({ callWorker, getCfg }) {
     'Logística': filtrosPorDefecto('Logística'),
   };
   const ultTabla = {}; // última tabla por sucursal (para exportar)
+  const ultData = {}; // último dashboard completo (para exportar gráficos)
 
   function filtrosPorDefecto(dashboard) {
     return {
@@ -3775,60 +3988,169 @@ function crearDashboards({ callWorker, getCfg }) {
     const cfg = getCfg();
     const data = await callWorker('dashboard', { filtros, cfg });
     ultTabla[dashboard] = data.porSucursal;
+    ultData[dashboard] = data;
     pintarEncabezado(dashboard, cont, filtros, data);
+    pintarHero(dashboard, cont, data);
+    pintarDiagnostico(dashboard, cont, data);
     pintarCards(dashboard, cont, data);
-    pintarTop5(cont, data);
-    pintarGraficos(dashboard, data);
+    pintarGraficos(dashboard, cont, data);
     pintarTabla(dashboard, cont, data);
   }
 
   // ---- Esqueleto HTML ------------------------------------------------------
-  function esqueleto(dashboard) {
+  // Id de gráfico con prefijo por dashboard (evita IDs duplicados entre vistas).
+  function cid(dashboard, base) {
+    return (dashboard === 'Tienda' ? 't_' : 'l_') + base;
+  }
+
+  // Tarjeta de gráfico con cabecera numerada y botón de exportación.
+  function chartCard(dashboard, num, titulo, subtitulo, baseId, ancho) {
     return `
-      <header class="vista-head">
-        <h1>Dashboard ${dashboard}</h1>
-        <div class="acciones">
-          <button class="btn btn-sec" data-accion="imprimir">${icon('printer')}<span>Imprimir / PDF</span></button>
-          <button class="btn btn-sec" data-accion="csv">${icon('download')}<span>CSV</span></button>
-          <button class="btn" data-accion="excel">${icon('download')}<span>Excel</span></button>
+      <section class="chart-card ${ancho ? 'g-ancho' : ''}">
+        <div class="chart-card-head">
+          <div class="cch-left"><span class="sec-num">${num}</span>
+            <div><h3>${titulo}</h3><p class="chart-sub">${subtitulo}</p></div>
+          </div>
+          <button class="btn-exp" data-export="${baseId}">${icon('download')}<span>Exportar</span></button>
         </div>
-      </header>
-      <div class="encabezado-periodo" data-encabezado></div>
+        <div class="grafico-body" id="${cid(dashboard, baseId)}"></div>
+      </section>`;
+  }
+
+  function esqueleto(dashboard) {
+    const cc = (num, titulo, sub, baseId, ancho) => chartCard(dashboard, num, titulo, sub, baseId, ancho);
+    return `
+      <div class="exec-banner" data-banner></div>
       <div class="filtros" data-filtros></div>
-      <div class="cards-wrap" data-cards></div>
-      <div class="top5" data-top5></div>
-      <div class="graficos">
-        <div class="grafico g-ancho" id="gr01"></div>
-        <div class="grafico" id="gr02"></div>
-        <div class="grafico" id="gr03"></div>
-        <div class="grafico" id="gr04"></div>
-        <div class="grafico g-ancho" id="gr05"></div>
-        <div class="grafico" id="gr06"></div>
-        <div class="grafico" id="gr07"></div>
-        <div class="grafico g-ancho" id="gr08"></div>
-      </div>
-      <h2>KPI por sucursal</h2>
-      <div class="tabla-herramientas">
-        <span class="busqueda-wrap">${icon('search')}<input type="search" placeholder="Buscar sucursal…" data-buscar-suc class="input-busqueda" /></span>
-        <span class="nota">Clic en una fila para ver el detalle por persona.</span>
-      </div>
-      <div data-tabla-suc></div>
+      <div class="alerta-dotacion" data-alerta></div>
+      <div class="hero-kpis" data-hero></div>
+      <div class="diag-wrap" data-diag></div>
+
+      <section class="bloque">
+        <h2 class="bloque-titulo"><span class="sec-num">A</span> Asistencia y marcación</h2>
+        <div class="graficos">
+          ${cc('GR-01', '% Asistencia por sucursal', 'Top 15 por dotación', 'gr01', true)}
+          ${cc('GR-T', 'Tendencia del período', 'Tardanzas, fuga, días no planificados y HHEE', 'grTend', true)}
+          ${cc('GR-06', 'Calidad de marcación', 'Distribución de días por tipo de marca', 'gr06', false)}
+        </div>
+      </section>
+
+      <section class="bloque">
+        <h2 class="bloque-titulo"><span class="sec-num">B</span> Planificación y disciplina</h2>
+        <div class="graficos">
+          ${cc('02', 'Días no planificados por tienda', 'Días laborados sin turno en la malla', 'gr02', false)}
+          ${cc('03', 'Justificaciones por tienda', 'Días con justificación registrada', 'gr03', false)}
+          ${cc('04', 'Horas justificadas por tienda', 'Atrasos de ingreso vs. adelantos de salida', 'gr04', false)}
+          ${cc('05', 'Fuga de tiempo: tardanzas y salidas', 'Horas perdidas por ingresos tarde y salidas antes', 'gr05', false)}
+        </div>
+      </section>
+
+      <section class="bloque">
+        <h2 class="bloque-titulo"><span class="sec-num">C</span> Horas extra (HHEE)</h2>
+        <div class="graficos">
+          ${cc('06', 'Ejecutadas vs. Aprobadas vs. Cumplidas', 'Volumen de horas por encima de la jornada', 'gr07', true)}
+          ${cc('07', 'Brecha: Aprobadas menos Ejecutadas', 'Sobre-ejecución (rojo) y sub-ejecución (azul)', 'gr08', false)}
+          ${cc('08', '% Cumplimiento de malla por sucursal', 'Meta 95%', 'gr09', false)}
+        </div>
+      </section>
+
+      <section class="bloque">
+        <h2 class="bloque-titulo"><span class="sec-num">D</span> Indicadores detallados</h2>
+        <div class="cards-wrap" data-cards></div>
+      </section>
+
+      <section class="bloque">
+        <div class="recon-head">
+          <h2 class="bloque-titulo"><span class="sec-num">E</span> Reconciliación · Resultado por sucursal</h2>
+          <div class="acciones">
+            <button class="btn btn-sec" data-accion="imprimir">${icon('printer')}<span>Imprimir / PDF</span></button>
+            <button class="btn btn-sec" data-accion="csv">${icon('download')}<span>CSV</span></button>
+            <button class="btn" data-accion="excel">${icon('download')}<span>Excel</span></button>
+          </div>
+        </div>
+        <div class="tabla-herramientas">
+          <span class="busqueda-wrap">${icon('search')}<input type="search" placeholder="Buscar sucursal…" data-buscar-suc class="input-busqueda" /></span>
+          <span class="nota">Clic en una fila para ver el detalle por persona.</span>
+        </div>
+        <div data-tabla-suc></div>
+      </section>
       <div class="modal" data-modal hidden></div>`;
   }
 
   // ---- Encabezado de período ----------------------------------------------
   function pintarEncabezado(dashboard, cont, filtros, data) {
-    const el = cont.querySelector('[data-encabezado]');
+    const el = cont.querySelector('[data-banner]');
     const rango = filtros.fechaDesde
       ? `${fmtFecha(filtros.fechaDesde)} – ${fmtFecha(filtros.fechaHasta)}`
-      : `${fmtFecha(opciones.fechaMin)} – ${fmtFecha(opciones.fechaMax)} (todo)`;
+      : 'Consolidado';
+    const ambito = dashboard === 'Tienda' ? 'RETAIL TIENDAS' : 'CENTROS DE DISTRIBUCIÓN';
+    el.className = 'exec-banner ' + (dashboard === 'Tienda' ? 'banner-tienda' : 'banner-log');
     el.innerHTML = `
-      <div class="eh-izq" style="border-color:${PALETA[dashboard]}">
-        <div><span class="eh-lbl">Período</span><b>${rango}</b></div>
-        <div><span class="eh-lbl">Fecha de corte</span><b>${new Date().toLocaleDateString('es-PE')}</b></div>
-        <div><span class="eh-lbl">Días persona-día</span><b>${fmtMiles(data.nFilas)}</b></div>
+      <div class="eb-top"><span class="eb-dot"></span><span class="eb-eyebrow">GESTIÓN OPERATIVA · ${ambito}</span></div>
+      <div class="eb-main">
+        <div>
+          <h1 class="eb-title">Asistencia y Horas Extra · ${dashboard}</h1>
+          <p class="eb-sub">Consolidado operativo de control de malla, ausentismos, fuga de tiempo y cumplimiento de horas extra.</p>
+          <span class="eb-badge">Período: <b>${rango}</b></span>
+          <span class="eb-badge eb-badge-ghost">${fmtMiles(data.nFilas)} días persona-día · corte ${new Date().toLocaleDateString('es-PE')}</span>
+        </div>
       </div>
-      <div class="eh-aviso">${icon('warning')}<span>La Dotación es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado.</span></div>`;
+      <p class="eb-nota">${icon('warning')}<span>La Dotación es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado.</span></p>`;
+  }
+
+  // ---- Alerta de dotación reducida ----------------------------------------
+  function pintarAlerta(cont, data) {
+    const el = cont.querySelector('[data-alerta]');
+    const reducidas = data.porSucursal.filter((s) => s.personas < 10).length;
+    if (!reducidas) { el.innerHTML = ''; return; }
+    el.innerHTML = `${icon('warning')}<span><b>${reducidas}</b> sucursal(es) con dotación reducida (&lt; 10 colaboradores): sus porcentajes pueden no ser representativos.</span>`;
+  }
+
+  // ---- Hero KPIs (fila ejecutiva) -----------------------------------------
+  function pintarHero(dashboard, cont, data) {
+    pintarAlerta(cont, data);
+    const k = data.kpis;
+    const promFuga = k.fiscalizables ? k.fugaH / k.fiscalizables : 0;
+    const hero = [
+      { acc: 'ok', ico: 'calidad', lbl: 'Fiscalizables', val: fmtMiles(k.fiscalizables), sub: `No fisc: ${fmtMiles(k.noFiscalizables)} · Total: ${fmtMiles(k.personas)}`, tip: 'Personas únicas con fiscalización = Fiscalizado.' },
+      { acc: 'amber', ico: 'complementarios', lbl: 'No planificados', val: fmtMiles(k.diasNoPlan) + ' d', sub: `${fmtMiles(k.trabajadoresNoPlan)} colaboradores`, tip: 'Días trabajados sin turno planificado.' },
+      { acc: 'rojo', ico: 'historico', lbl: 'Fuga de tiempo', val: fmtHoras(k.fugaH) + ' h', sub: `Promedio: ${fmtDec1(promFuga)} h/fisc.`, tip: 'Σ (atraso E1 + adelanto S2). Horas perdidas por tardanzas y salidas anticipadas.' },
+      { acc: 'teal', ico: 'parametros', lbl: 'HHEE ejecutadas', val: fmtHoras(k.hheeEjecH) + ' h', sub: `Aprobadas: ${fmtHoras(k.hheeAutH)} h`, tip: 'Σ tiempo extra ejecutado.' },
+      { acc: 'blue', ico: 'alertas', lbl: 'Desviación HHEE', val: fmtHoras(k.desviacionHHEEH) + ' h', sub: `Desajuste: ${fmtPct(k.pctDesviacionHHEE)}`, tip: 'Aprobadas − Ejecutadas. Negativo = sobre-ejecución.' },
+    ];
+    cont.querySelector('[data-hero]').innerHTML = hero.map((h) => `
+      <div class="hero-card acc-${h.acc}" title="${esc(h.tip)}">
+        <div class="hero-top"><span class="hero-ico">${icon(h.ico)}</span><span class="hero-help" title="${esc(h.tip)}">?</span></div>
+        <div class="hero-lbl">${h.lbl}</div>
+        <div class="hero-val">${h.val}</div>
+        <div class="hero-sub">${h.sub}</div>
+      </div>`).join('');
+  }
+
+  // ---- Diagnóstico ejecutivo (prioridades) --------------------------------
+  function pintarDiagnostico(dashboard, cont, data) {
+    const d = data.diagnostico || {};
+    const el = cont.querySelector('[data-diag]');
+    const titular = [];
+    if (d.fuga) titular.push(`Revisar primero <b>${esc(d.fuga.sucursal)}</b>: concentra ${fmtHoras(d.fuga.horas)} h de fuga`);
+    if (d.hhee) titular.push(`en HHEE, <b>${esc(d.hhee.sucursal)}</b> presenta la mayor desviación (${fmtHoras(d.hhee.desviacion)} h)`);
+    const cards = [
+      d.planificacion && { n: '01', tag: 'Planificación', suc: d.planificacion.sucursal, val: `${fmtMiles(d.planificacion.dias)} días`, desc: `${fmtMiles(d.planificacion.trabajadores)} colaborador(es) con al menos un día no planificado`, accion: 'Validar la malla y asignar turno a los colaboradores identificados.' },
+      d.fuga && { n: '02', tag: 'Fuga de tiempo', suc: d.fuga.sucursal, val: `${fmtHoras(d.fuga.horas)} h`, desc: `${fmtMiles(d.fuga.trabajadores)} colaborador(es) con tardanzas o salidas anticipadas`, accion: 'Revisar las marcaciones de salida y el cierre de turnos en tienda.' },
+      d.hhee && { n: '03', tag: 'Horas extra', suc: d.hhee.sucursal, val: `${fmtHoras(d.hhee.desviacion)} h`, desc: 'Brecha entre horas aprobadas y ejecutadas', accion: 'Revisar y regularizar el sobretiempo no programado que supera lo aprobado.' },
+    ].filter(Boolean);
+    if (!cards.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div class="diag-head"><span class="sec-num">G1</span><div><h2>Prioridades del período</h2><p class="chart-sub">Las revisiones prioritarias detectadas automáticamente según la magnitud del desvío.</p></div></div>
+      ${titular.length ? `<div class="diag-titular">${titular.join('. ')}.</div>` : ''}
+      <div class="diag-cards">${cards.map((c) => `
+        <div class="diag-card">
+          <div class="diag-card-top"><span class="diag-num">${c.n}</span><span class="diag-tag">${c.tag}</span></div>
+          <div class="diag-suc">${esc(c.suc)}</div>
+          <div class="diag-val">${c.val}</div>
+          <div class="diag-desc">${esc(c.desc)}</div>
+          <div class="diag-accion"><span>Acción recomendada</span> ${esc(c.accion)}</div>
+        </div>`).join('')}</div>`;
   }
 
   // ---- Barra de filtros ----------------------------------------------------
@@ -4069,18 +4391,45 @@ function crearDashboards({ callWorker, getCfg }) {
   }
 
   // ---- Gráficos ------------------------------------------------------------
-  function pintarGraficos(dashboard, data) {
+  function pintarGraficos(dashboard, cont, data) {
     const color = PALETA[dashboard];
     const g = data.graficos;
-    charts.barrasHorizontales('gr01', 'GR-01 · % Asistencia por sucursal (top 15 por personas)', g.gr01, color, '%');
-    charts.barrasHorizontales('gr02', 'GR-02 · Tardanzas E1 por sucursal', g.gr02, color, '', 0);
-    charts.dobleSerie('gr03', 'GR-03 · Días no planificados y trabajadores afectados', g.gr03, color);
-    charts.barrasHorizontales('gr04', 'GR-04 · Fuga (h) por fiscalizable', g.gr04, color, ' h', 2);
-    charts.tendencia('gr05', 'GR-05 · Tendencia', g.gr05, color);
-    charts.anillo('gr06', 'GR-06 · Calidad de marcación', g.gr06);
-    charts.hheeComparado('gr07', 'GR-07 · HHEE ejecutadas vs reconocidas', g.gr07, color);
-    charts.mallaPorSucursal('gr08', 'GR-08 · % Cumplimiento de malla por sucursal', g.gr08, color, 95);
+    // Los títulos van en la cabecera de cada tarjeta; se pasa '' a ECharts.
+    charts.barrasHorizontales(cid(dashboard, 'gr01'), '', g.gr01, color, '%');
+    charts.tendencia(cid(dashboard, 'grTend'), '', g.tendencia, color);
+    charts.anillo(cid(dashboard, 'gr06'), '', g.gr06);
+    charts.barrasConBadge(cid(dashboard, 'gr02'), '', g.gr02, color, ' d', 'pers.');
+    charts.barrasHorizontales(cid(dashboard, 'gr03'), '', g.gr03, color, '', 0);
+    charts.barrasApiladas(cid(dashboard, 'gr04'), '', g.gr04, 'Atrasos de ingreso', 'Adelantos de salida', '#c0392b', '#2f9e5e', ' h');
+    charts.barrasApiladas(cid(dashboard, 'gr05'), '', g.gr05, 'Tardanzas', 'Salidas anticipadas', '#1f4e78', '#5aa0dc', ' h');
+    charts.barrasAgrupadas3(cid(dashboard, 'gr07'), '', g.gr07, ['#1e8e4e', '#5aa0dc', '#b7791f']);
+    charts.barrasDivergentes(cid(dashboard, 'gr08'), '', g.gr08, ' h');
+    charts.mallaPorSucursal(cid(dashboard, 'gr09'), '', g.gr09, color, 95);
+    // Botones de exportación por gráfico.
+    cont.querySelectorAll('[data-export]').forEach((b) =>
+      b.addEventListener('click', () => exportarGrafico(dashboard, b.dataset.export))
+    );
     setTimeout(() => charts.resizeTodos(), 30);
+  }
+
+  // Exporta a CSV los datos de un gráfico concreto.
+  function exportarGrafico(dashboard, chartId) {
+    const g = (ultData[dashboard] || {}).graficos;
+    if (!g) return;
+    const MAP = {
+      gr01: { arr: g.gr01, cols: ['sucursal', 'valor'], tit: ['Sucursal', '% Asistencia'] },
+      gr02: { arr: g.gr02, cols: ['sucursal', 'valor', 'badge'], tit: ['Sucursal', 'Días no planificados', 'Trabajadores'] },
+      gr03: { arr: g.gr03, cols: ['sucursal', 'valor'], tit: ['Sucursal', 'Días con justificación'] },
+      gr04: { arr: g.gr04, cols: ['sucursal', 'a', 'b'], tit: ['Sucursal', 'Atrasos justificados (h)', 'Salidas justificadas (h)'] },
+      gr05: { arr: g.gr05, cols: ['sucursal', 'a', 'b'], tit: ['Sucursal', 'Tardanzas (h)', 'Salidas anticipadas (h)'] },
+      gr07: { arr: g.gr07, cols: ['sucursal', 'ejecutadas', 'aprobadas', 'cumplidas'], tit: ['Sucursal', 'Ejecutadas (h)', 'Aprobadas (h)', 'Cumplidas (h)'] },
+      gr08: { arr: g.gr08, cols: ['sucursal', 'valor'], tit: ['Sucursal', 'Desviación HHEE (h)'] },
+      gr09: { arr: g.gr09, cols: ['sucursal', 'valor'], tit: ['Sucursal', '% Malla'] },
+      grTend: { arr: g.tendencia, cols: ['periodo', 'tardanzas', 'fugaH', 'diasNoPlan', 'hheeH', 'pctAsistencia'], tit: ['Período', 'Tardanzas', 'Fuga (h)', 'Días no planif.', 'HHEE (h)', '% Asistencia'] },
+    };
+    const m = MAP[chartId];
+    if (!m || !m.arr) return;
+    exportarCSV(`${chartId}_${dashboard}_${new Date().toISOString().slice(0, 10)}`, m.cols, m.arr, m.tit);
   }
 
   // ---- Tabla por sucursal --------------------------------------------------

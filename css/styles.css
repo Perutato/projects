@@ -335,6 +335,97 @@ h3 { font-size: 15px; margin: 22px 0 8px; }
 .busqueda-wrap .ico { position: absolute; left: 9px; width: 15px; height: 15px; color: var(--txt-suave); pointer-events: none; }
 .busqueda-wrap .input-busqueda { padding-left: 30px; }
 
+/* ===========================================================================
+   Dashboard ejecutivo (estilo retail)
+   =========================================================================== */
+/* Banner superior */
+.exec-banner { border-radius: 14px; padding: 22px 26px; margin-bottom: 18px; color: #fff; position: relative; overflow: hidden; }
+.banner-tienda { background: linear-gradient(120deg, #15314c 0%, #1f4e78 55%, #2f6ca3 100%); }
+.banner-log { background: linear-gradient(120deg, #1d3016 0%, #375623 55%, #4e7a32 100%); }
+.exec-banner::after { content: ''; position: absolute; right: -60px; top: -60px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(255,255,255,0.10), transparent 70%); }
+.eb-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.eb-dot { width: 8px; height: 8px; border-radius: 50%; background: #c9e265; box-shadow: 0 0 0 3px rgba(201,226,101,0.25); }
+.eb-eyebrow { font-size: 11px; letter-spacing: 0.1em; font-weight: 700; color: #c9e265; }
+.banner-tienda .eb-eyebrow, .banner-tienda .eb-dot { color: #ffd84d; background: #ffd84d; }
+.banner-tienda .eb-eyebrow { background: none; }
+.eb-title { font-size: 26px; margin: 0 0 4px; font-weight: 700; }
+.eb-sub { margin: 0 0 12px; color: rgba(255,255,255,0.82); font-size: 13.5px; max-width: 720px; }
+.eb-badge { display: inline-block; background: rgba(255,255,255,0.16); border-radius: 999px; padding: 5px 13px; font-size: 12.5px; margin-right: 8px; }
+.eb-badge-ghost { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
+.eb-nota { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; font-size: 12px; color: rgba(255,255,255,0.78); }
+.eb-nota .ico { width: 15px; height: 15px; margin-top: 1px; color: #ffd84d; }
+.eb-nota em { color: #fff; font-style: italic; }
+
+/* Alerta de dotación reducida */
+.alerta-dotacion:empty { display: none; }
+.alerta-dotacion { display: flex; gap: 9px; align-items: center; background: #fff8e6; border: 1px solid #f0dca8; color: #6b5713; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; }
+.alerta-dotacion .ico { width: 17px; height: 17px; color: var(--ambar); }
+
+/* Hero KPIs */
+.hero-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.hero-card { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 15px 16px 14px; box-shadow: var(--sombra); border-top: 3px solid var(--borde); position: relative; }
+.hero-card.acc-ok { border-top-color: var(--ok); }
+.hero-card.acc-amber { border-top-color: var(--ambar); }
+.hero-card.acc-rojo { border-top-color: var(--error); }
+.hero-card.acc-teal { border-top-color: #0f9b8e; }
+.hero-card.acc-blue { border-top-color: #2f80c0; }
+.hero-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.hero-ico { display: inline-flex; width: 34px; height: 34px; border-radius: 9px; background: #f0f4f9; color: var(--tienda); align-items: center; justify-content: center; }
+.acc-ok .hero-ico { background: var(--ok-bg); color: var(--ok); }
+.acc-amber .hero-ico { background: #fff3d6; color: var(--ambar); }
+.acc-rojo .hero-ico { background: var(--error-bg); color: var(--error); }
+.acc-teal .hero-ico { background: #e0f5f2; color: #0f9b8e; }
+.acc-blue .hero-ico { background: #e6f0fa; color: #2f80c0; }
+.hero-ico .ico { width: 19px; height: 19px; }
+.hero-help { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--borde); color: var(--txt-suave); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
+.hero-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--txt-suave); font-weight: 600; }
+.hero-val { font-size: 27px; font-weight: 700; color: var(--txt); margin: 3px 0 2px; font-variant-numeric: tabular-nums; }
+.hero-sub { font-size: 12px; color: var(--txt-suave); }
+
+/* Diagnóstico ejecutivo */
+.diag-wrap:empty { display: none; }
+.diag-wrap { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 18px 20px; margin-bottom: 22px; box-shadow: var(--sombra); }
+.diag-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.diag-head h2 { margin: 0; font-size: 17px; }
+.diag-titular { background: #f6f9fc; border-left: 3px solid var(--tienda); border-radius: 8px; padding: 11px 15px; font-size: 13.5px; color: var(--txt); margin-bottom: 14px; }
+.diag-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.diag-card { border: 1px solid var(--borde); border-radius: 10px; padding: 14px 16px; border-top: 3px solid var(--error); }
+.diag-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.diag-num { background: #0f2436; color: #fff; font-size: 11px; font-weight: 700; width: 24px; height: 24px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
+.diag-tag { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--txt-suave); font-weight: 700; }
+.diag-suc { font-size: 15px; font-weight: 600; }
+.diag-val { font-size: 23px; font-weight: 700; color: var(--error); margin: 2px 0; font-variant-numeric: tabular-nums; }
+.diag-desc { font-size: 12.5px; color: var(--txt-suave); margin-bottom: 10px; }
+.diag-accion { font-size: 12px; color: var(--txt); background: #fbfcfe; border-radius: 7px; padding: 8px 10px; }
+.diag-accion span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--error); font-weight: 700; margin-bottom: 2px; }
+
+/* Bloques y numeración de secciones */
+.bloque { margin-bottom: 26px; }
+.bloque-titulo { display: flex; align-items: center; gap: 10px; font-size: 16px; margin: 0 0 14px; }
+.sec-num { background: #0f2436; color: #fff; font-size: 11px; font-weight: 700; min-width: 28px; height: 24px; padding: 0 6px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Tarjetas de gráfico */
+.chart-card { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; padding: 14px 16px 10px; box-shadow: var(--sombra); display: flex; flex-direction: column; }
+.chart-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+.cch-left { display: flex; gap: 10px; align-items: flex-start; }
+.cch-left h3 { margin: 0; font-size: 14px; }
+.chart-sub { margin: 2px 0 0; font-size: 11.5px; color: var(--txt-suave); }
+.grafico-body { height: 330px; width: 100%; }
+.btn-exp { background: #fff; border: 1px solid var(--borde); border-radius: 7px; padding: 5px 10px; cursor: pointer; font-size: 12px; color: var(--txt-suave); display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.btn-exp:hover { background: #f0f4f9; color: var(--tienda); border-color: var(--tienda); }
+.btn-exp .ico { width: 14px; height: 14px; }
+
+/* Cabecera de reconciliación */
+.recon-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+.recon-head .bloque-titulo { margin: 0; }
+.tabla-suc thead th { background: #213547; color: #fff; box-shadow: none; border-bottom: none; }
+.tabla-suc thead th.ordenado { color: #ffd84d; }
+.tabla-suc thead th .ico-xs { color: #ffd84d; }
+
+@media (max-width: 980px) {
+  .grafico-body { height: 300px; }
+}
+
 /* ---- Impresión / PDF ---- */
 @media print {
   .sidebar, .acciones, .dropzone, .progreso, .toast { display: none !important; }

@@ -201,3 +201,89 @@ export function mallaPorSucursal(id, titulo, datos, color, meta = 95) {
     }],
   }, true);
 }
+
+// --- Nuevos tipos de gráficos (estilo ejecutivo) ----------------------------
+
+/** Barras horizontales con etiqueta de valor + badge (p.ej. trabajadores). */
+export function barrasConBadge(id, titulo, datos, color, sufijo = '', etiquetaBadge = 'pers.') {
+  const inst = obtener(id);
+  if (!inst) return;
+  const arr = [...datos].reverse();
+  const cats = arr.map((d) => recortar(d.sucursal));
+  inst.setOption({
+    title: tit(titulo),
+    grid: { ...grid, right: 70 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' } },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false } },
+    series: [{
+      type: 'bar', data: arr.map((d) => d.valor), itemStyle: { color, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18,
+      label: {
+        show: true, position: 'right', color: '#5a6b7b', fontSize: 10.5, fontFamily: FUENTE,
+        formatter: (p) => `${p.value}${sufijo}` + (arr[p.dataIndex].badge != null ? `  ·  ${arr[p.dataIndex].badge} ${etiquetaBadge}` : ''),
+      },
+    }],
+  }, true);
+}
+
+/** Barras horizontales apiladas de dos series (ej. tardanzas vs salidas). */
+export function barrasApiladas(id, titulo, datos, nombreA, nombreB, colorA, colorB, sufijo = '') {
+  const inst = obtener(id);
+  if (!inst) return;
+  const arr = [...datos].reverse();
+  const cats = arr.map((d) => recortar(d.sucursal));
+  const et = { show: true, color: '#fff', fontSize: 9.5, fontFamily: FUENTE, formatter: (p) => (p.value > 0 ? (+p.value).toFixed(1) + sufijo : '') };
+  inst.setOption({
+    title: tit(titulo),
+    grid: { ...grid, bottom: 34, right: 20 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + sufijo },
+    legend: { bottom: 0, textStyle: ejeTxt, itemWidth: 12, itemHeight: 12 },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false } },
+    series: [
+      { name: nombreA, type: 'bar', stack: 't', data: arr.map((d) => +d.a.toFixed(1)), itemStyle: { color: colorA }, barMaxWidth: 18, label: et },
+      { name: nombreB, type: 'bar', stack: 't', data: arr.map((d) => +d.b.toFixed(1)), itemStyle: { color: colorB, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18, label: et },
+    ],
+  }, true);
+}
+
+/** Barras horizontales agrupadas de 3 series (ejecutadas/aprobadas/cumplidas). */
+export function barrasAgrupadas3(id, titulo, datos, colores, sufijo = ' h') {
+  const inst = obtener(id);
+  if (!inst) return;
+  const arr = [...datos].reverse();
+  const cats = arr.map((d) => recortar(d.sucursal));
+  const serie = (nombre, key, color) => ({
+    name: nombre, type: 'bar', data: arr.map((d) => +d[key].toFixed(1)), itemStyle: { color, borderRadius: [0, 2, 2, 0] }, barMaxWidth: 9,
+    label: { show: true, position: 'right', color: '#5a6b7b', fontSize: 9, fontFamily: FUENTE, formatter: (p) => (+p.value).toFixed(0) },
+  });
+  inst.setOption({
+    title: tit(titulo),
+    grid: { ...grid, bottom: 34, right: 44 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + sufijo },
+    legend: { bottom: 0, textStyle: ejeTxt, itemWidth: 12, itemHeight: 12 },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false } },
+    series: [serie('Ejecutadas', 'ejecutadas', colores[0]), serie('Aprobadas', 'aprobadas', colores[1]), serie('Cumplidas', 'cumplidas', colores[2])],
+  }, true);
+}
+
+/** Barras horizontales divergentes (negativo rojo a la izquierda, positivo azul). */
+export function barrasDivergentes(id, titulo, datos, sufijo = ' h') {
+  const inst = obtener(id);
+  if (!inst) return;
+  const arr = [...datos].reverse();
+  const cats = arr.map((d) => recortar(d.sucursal));
+  inst.setOption({
+    title: tit(titulo),
+    grid: { ...grid, left: 8, right: 60 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + sufijo },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false }, position: 'right' },
+    series: [{
+      type: 'bar', data: arr.map((d) => ({ value: +d.valor.toFixed(1), itemStyle: { color: d.valor < 0 ? '#c0392b' : '#2f80c0', borderRadius: d.valor < 0 ? [3, 0, 0, 3] : [0, 3, 3, 0] } })),
+      barMaxWidth: 16,
+      label: { show: true, position: 'left', color: '#5a6b7b', fontSize: 10, fontFamily: FUENTE, formatter: (p) => (+p.value).toFixed(0) + sufijo },
+    }],
+  }, true);
+}
