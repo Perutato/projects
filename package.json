@@ -1,0 +1,10 @@
+{
+  "name": "dashboard-asistencia-falabella",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dashboard de Asistencia y Alertas por sucursal (Falabella Perú) — app 100% cliente.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

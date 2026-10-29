@@ -1,0 +1,171 @@
+/* ===========================================================================
+   styles.css — Dashboard de Asistencia (Falabella Perú). Modo claro.
+   =========================================================================== */
+:root {
+  --tienda: #1f4e78;
+  --logistica: #375623;
+  --bg: #f4f6f9;
+  --panel: #ffffff;
+  --borde: #e3e8ef;
+  --txt: #1f2933;
+  --txt-suave: #5a6b7b;
+  --ok: #1e8e4e;
+  --ok-bg: #e6f6ec;
+  --error: #c0392b;
+  --error-bg: #fdecea;
+  --ambar: #b7791f;
+  --sombra: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.06);
+  --radio: 10px;
+  --fuente: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--fuente);
+  color: var(--txt);
+  background: var(--bg);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.app { display: flex; min-height: 100vh; }
+
+/* ---- Sidebar ---- */
+.sidebar {
+  width: 240px;
+  background: #0f2436;
+  color: #cdd8e3;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+.brand-logo {
+  width: 38px; height: 38px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--tienda), var(--logistica));
+  color: #fff; font-weight: 700; display: grid; place-items: center;
+}
+.brand-txt strong { display: block; color: #fff; font-size: 15px; }
+.brand-txt small { color: #8fa3b5; }
+.nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-btn {
+  text-align: left; background: transparent; color: #cdd8e3;
+  border: none; padding: 10px 12px; border-radius: 8px; cursor: pointer;
+  font-size: 14px; transition: background 0.15s;
+}
+.nav-btn:hover { background: rgba(255, 255, 255, 0.07); }
+.nav-btn.activo { background: rgba(255, 255, 255, 0.14); color: #fff; font-weight: 600; }
+.nav-btn:focus-visible { outline: 2px solid #7db1e6; outline-offset: 2px; }
+.privacidad {
+  font-size: 12px; color: #8fa3b5; background: rgba(255, 255, 255, 0.05);
+  padding: 10px; border-radius: 8px; margin-top: 14px;
+}
+
+/* ---- Main ---- */
+.main { flex: 1; padding: 26px 32px; max-width: 1200px; }
+.vista { display: none; }
+.vista.activa { display: block; }
+.vista-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.vista-head h1 { font-size: 22px; margin: 0; }
+h2 { font-size: 17px; margin: 24px 0 10px; }
+h3 { font-size: 15px; margin: 22px 0 8px; }
+.acciones { display: flex; gap: 8px; }
+
+/* ---- Botones ---- */
+.btn {
+  background: var(--tienda); color: #fff; border: none; padding: 9px 16px;
+  border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn-sec { background: #fff; color: var(--txt); border: 1px solid var(--borde); }
+.btn-chico { padding: 4px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--borde); background: #fff; cursor: pointer; }
+.btn-del:hover { background: var(--error-bg); color: var(--error); border-color: var(--error); }
+.btn:focus-visible, .btn-chico:focus-visible { outline: 2px solid #7db1e6; outline-offset: 2px; }
+
+/* ---- Dropzone ---- */
+.dropzone {
+  border: 2px dashed #b9c6d4; border-radius: var(--radio); background: var(--panel);
+  padding: 40px; text-align: center; cursor: pointer; transition: all 0.15s;
+}
+.dropzone:hover, .dropzone.arrastrando { border-color: var(--tienda); background: #eef4fb; }
+.dz-icono { font-size: 34px; }
+.nota { color: var(--txt-suave); font-size: 12.5px; }
+
+.aviso-dotacion {
+  margin: 16px 0; background: #fff8e6; border: 1px solid #f0dca8;
+  padding: 12px 14px; border-radius: 8px; font-size: 13px; color: #6b5713;
+}
+
+/* ---- Tablas ---- */
+.tabla { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: var(--radio); overflow: hidden; box-shadow: var(--sombra); }
+.tabla th, .tabla td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--borde); font-size: 13px; }
+.tabla th { background: #f0f3f7; color: var(--txt-suave); font-weight: 600; }
+.tabla td.num, .tabla th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tabla tbody tr:hover { background: #f8fafc; }
+
+.pill { padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+.pill-dotacion { background: #e8eefc; color: #2b4a9e; }
+.pill-asistencia { background: #e6f6ec; color: var(--ok); }
+.pill-tiempoExtra { background: #fff0e0; color: #a35a12; }
+
+.vacio { color: var(--txt-suave); font-style: italic; padding: 12px 0; }
+
+/* ---- Resumen de carga ---- */
+.resumen-carga { margin-top: 20px; }
+.mini-cards { display: flex; gap: 16px; flex-wrap: wrap; }
+.mini-card { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); padding: 14px 16px; min-width: 220px; box-shadow: var(--sombra); }
+.mini-card h4 { margin: 0 0 8px; }
+.mini-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed var(--borde); }
+.mini-row:last-child { border-bottom: none; }
+
+/* ---- Calidad ---- */
+.resumen-ct { margin-bottom: 14px; }
+.badge { padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+.badge-ok { background: var(--ok-bg); color: var(--ok); }
+.badge-error { background: var(--error-bg); color: var(--error); }
+.tabla-ct td.detalle { color: var(--txt-suave); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ct-error td { background: #fff6f5; }
+
+.listados { display: grid; gap: 8px; }
+.listado { background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; padding: 6px 12px; }
+.listado summary { cursor: pointer; font-weight: 600; }
+.listado .cuenta { background: #eef2f7; color: var(--txt-suave); border-radius: 999px; padding: 1px 8px; font-size: 12px; margin-left: 6px; }
+.listado-body { max-height: 320px; overflow: auto; margin-top: 8px; }
+.li { padding: 3px 0; font-size: 12.5px; border-bottom: 1px dashed var(--borde); font-variant-numeric: tabular-nums; }
+
+/* ---- Placeholder próximas fases ---- */
+.proxima { background: var(--panel); border: 1px dashed var(--borde); border-radius: var(--radio); padding: 48px; text-align: center; color: var(--txt-suave); font-size: 20px; }
+.proxima p { font-size: 14px; margin-top: 8px; }
+
+/* ---- Progreso ---- */
+.progreso { position: fixed; bottom: 20px; right: 20px; background: #0f2436; color: #fff; padding: 12px 18px; border-radius: 10px; display: none; align-items: center; gap: 12px; box-shadow: var(--sombra); }
+.progreso.visible { display: flex; }
+.barra { width: 120px; height: 5px; background: rgba(255, 255, 255, 0.2); border-radius: 3px; overflow: hidden; }
+.barra-anim { width: 40%; height: 100%; background: #7db1e6; animation: desliza 1s infinite ease-in-out; }
+@keyframes desliza { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+
+/* ---- Toast ---- */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: #0f2436; color: #fff; padding: 12px 20px; border-radius: 8px; opacity: 0; pointer-events: none; transition: all 0.25s; box-shadow: var(--sombra); max-width: 80vw; }
+.toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.ok { background: var(--ok); }
+.toast.error { background: var(--error); }
+
+/* ---- Responsive ---- */
+@media (max-width: 860px) {
+  .app { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .nav { flex-direction: row; flex-wrap: wrap; }
+  .privacidad { display: none; }
+  .main { padding: 18px; }
+}
+
+/* ---- Impresión / PDF ---- */
+@media print {
+  .sidebar, .acciones, .dropzone, .progreso, .toast { display: none !important; }
+  .main { max-width: none; }
+  .vista { display: block !important; }
+}
