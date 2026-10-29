@@ -12,24 +12,40 @@ calcula los KPIs y muestra dashboards, alertas, histórico y controles de calida
 
 ## Cómo usar
 
-1. Abre `index.html` con un servidor estático (necesario por el uso de ES modules
-   y Web Workers). Por ejemplo:
-   ```bash
-   npx serve .
-   # o
-   python3 -m http.server 8080
-   ```
-   Luego entra a `http://localhost:8080`.
-2. Ve a **Carga** y arrastra tus archivos `.xlsx`, `.xls` o `.csv`. El tipo se
+Hay **dos formas de abrirla**, las dos 100% locales y sin internet:
+
+### Opción A — Un solo archivo, con DOBLE CLIC (sin servidor)
+
+Abre **`dashboard.html`** directamente en tu navegador (doble clic). Es la app
+completa empaquetada en un único archivo; no necesitas comandos ni `localhost`.
+Ideal para repartir a usuarios finales.
+
+> Para regenerarlo tras cambios en el código: `npm run build` (crea
+> `dashboard.html` a partir de los módulos de `js/`).
+
+### Opción B — Código modular, con un servidor estático local
+
+Para desarrollar (archivos separados) sí hace falta un servidor estático, porque
+el navegador bloquea los ES modules y el Web Worker bajo `file://`:
+
+```bash
+npx serve .
+# o
+python3 -m http.server 8080   # luego entra a http://localhost:8080
+```
+
+### Luego, en cualquiera de las dos opciones
+
+1. Ve a **Carga** y arrastra tus archivos `.xlsx`, `.xls` o `.csv`. El tipo se
    detecta automáticamente por los encabezados:
    - **Dotación:** contiene `Nº de documento` + `Grupo de ubicación`.
    - **Asistencia:** contiene `Identificador` + `Permiso` + `Turno`.
    - **Tiempo Extra:** contiene `TE` + `Finales`.
-3. La **Dotación** se reemplaza con la última cargada. **Asistencia** y **Tiempo
+2. La **Dotación** se reemplaza con la última cargada. **Asistencia** y **Tiempo
    Extra** se **acumulan** (varios días/semanas/meses) y se deduplican por
    persona‑día (`keyDia`): gana el archivo cargado más recientemente, porque
    refleja las regularizaciones.
-4. Revisa **Calidad** para verificar los controles CT‑01 … CT‑14 y los listados
+3. Revisa **Calidad** para verificar los controles CT‑01 … CT‑14 y los listados
    de diagnóstico.
 
 Los datos cargados, el histórico de cortes y los parámetros se guardan localmente
@@ -38,7 +54,9 @@ en **IndexedDB**.
 ## Estructura
 
 ```
-index.html
+dashboard.html        App completa en un solo archivo (doble clic) — generado
+build.mjs             Empaqueta los módulos de js/ en dashboard.html
+index.html            App modular (requiere servidor estático)
 css/styles.css
 js/
   app.js              Controlador de la interfaz (navegación, carga, worker)

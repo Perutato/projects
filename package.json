@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Dashboard de Asistencia y Alertas por sucursal (Falabella Perú) — app 100% cliente.",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "build": "node build.mjs"
   }
 }
