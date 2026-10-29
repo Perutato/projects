@@ -32,8 +32,18 @@ export function limpiarGraficos() {
   instancias.clear();
 }
 
-const grid = { left: 8, right: 16, top: 30, bottom: 8, containLabel: true };
-const ejeTxt = { color: '#5a6b7b', fontSize: 11 };
+const FUENTE = '"Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif';
+const grid = { left: 8, right: 16, top: 34, bottom: 8, containLabel: true };
+const ejeTxt = { color: '#5a6b7b', fontSize: 11, fontFamily: FUENTE };
+const SPLIT = { lineStyle: { color: '#eef2f7' } };
+const EJE_LINE = { lineStyle: { color: '#dbe2ea' } };
+
+// Título y tooltip corporativos reutilizables.
+const tit = (t) => ({ text: t, left: 0, top: 2, textStyle: { fontSize: 13, fontWeight: 600, color: '#1f2933', fontFamily: FUENTE } });
+const TOOLTIP = {
+  backgroundColor: '#0f2436', borderWidth: 0, textStyle: { color: '#fff', fontSize: 12, fontFamily: FUENTE },
+  padding: [8, 12], extraCssText: 'border-radius:8px;box-shadow:0 6px 20px rgba(16,24,40,.25);',
+};
 
 function recortar(s, n = 22) {
   return s && s.length > n ? s.slice(0, n - 1) + '…' : s;
@@ -46,12 +56,15 @@ export function barrasHorizontales(id, titulo, datos, color, sufijo = '', decima
   const cats = datos.map((d) => recortar(d.sucursal)).reverse();
   const vals = datos.map((d) => +d.valor.toFixed(decimales)).reverse();
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
-    grid,
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => v + sufijo },
-    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: { lineStyle: { color: '#eef2f7' } } },
-    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt },
-    series: [{ type: 'bar', data: vals, itemStyle: { color, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18 }],
+    title: tit(titulo),
+    grid: { ...grid, right: 44 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => v + sufijo },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false } },
+    series: [{
+      type: 'bar', data: vals, itemStyle: { color, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18,
+      label: { show: true, position: 'right', color: '#5a6b7b', fontSize: 10.5, fontFamily: FUENTE, formatter: (p) => p.value + sufijo },
+    }],
   }, true);
 }
 
@@ -61,9 +74,9 @@ export function dobleSerie(id, titulo, datos, color) {
   if (!inst) return;
   const cats = datos.map((d) => recortar(d.sucursal));
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60 },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { bottom: 0, textStyle: ejeTxt },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: 35 } },
     yAxis: { type: 'value', axisLabel: ejeTxt, splitLine: { lineStyle: { color: '#eef2f7' } } },
@@ -80,13 +93,13 @@ export function tendencia(id, titulo, serie, color) {
   if (!inst) return;
   const cats = serie.map((s) => s.periodo);
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60, right: 40 },
-    tooltip: { trigger: 'axis' },
+    tooltip: { ...TOOLTIP, trigger: 'axis' },
     legend: { bottom: 0, textStyle: ejeTxt },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: cats.length > 12 ? 40 : 0 } },
     yAxis: [
-      { type: 'value', name: 'Días / Horas', axisLabel: ejeTxt, splitLine: { lineStyle: { color: '#eef2f7' } } },
+      { type: 'value', axisLabel: ejeTxt, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
     ],
     series: [
       { name: 'Tardanzas (días)', type: 'line', smooth: true, data: serie.map((s) => s.tardanzas), itemStyle: { color } },
@@ -108,8 +121,8 @@ export function anillo(id, titulo, data) {
     { name: 'Falta injustificada', value: data.faltaInjust, itemStyle: { color: '#c0392b' } },
   ];
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    title: tit(titulo),
+    tooltip: { ...TOOLTIP, trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { bottom: 0, textStyle: ejeTxt },
     series: [{
       type: 'pie', radius: ['45%', '70%'], center: ['50%', '50%'], avoidLabelOverlap: true,
@@ -124,9 +137,9 @@ export function hheeComparado(id, titulo, datos, color) {
   if (!inst) return;
   const cats = datos.map((d) => recortar(d.sucursal));
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60 },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + ' h' },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + ' h' },
     legend: { bottom: 0, textStyle: ejeTxt },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: 35 } },
     yAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value} h' }, splitLine: { lineStyle: { color: '#eef2f7' } } },
@@ -143,13 +156,13 @@ export function evolucionCortes(id, titulo, serie, color) {
   if (!inst) return;
   const cats = serie.map((s) => s.fecha);
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60, right: 50 },
-    tooltip: { trigger: 'axis' },
+    tooltip: { ...TOOLTIP, trigger: 'axis' },
     legend: { bottom: 0, textStyle: ejeTxt },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: cats.length > 8 ? 35 : 0 } },
     yAxis: [
-      { type: 'value', name: 'Incidencias', axisLabel: ejeTxt, splitLine: { lineStyle: { color: '#eef2f7' } } },
+      { type: 'value', axisLabel: ejeTxt, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
       { type: 'value', name: '% Reg.', max: 100, position: 'right', axisLabel: { ...ejeTxt, formatter: '{value}%' }, splitLine: { show: false } },
     ],
     series: [
@@ -167,9 +180,9 @@ export function mallaPorSucursal(id, titulo, datos, color, meta = 95) {
   if (!inst) return;
   const cats = datos.map((d) => recortar(d.sucursal));
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60 },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + '%' },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + '%' },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: 35 } },
     yAxis: { type: 'value', max: 100, axisLabel: { ...ejeTxt, formatter: '{value}%' }, splitLine: { lineStyle: { color: '#eef2f7' } } },
     series: [{

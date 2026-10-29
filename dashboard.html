@@ -282,6 +282,66 @@ h3 { font-size: 15px; margin: 22px 0 8px; }
 .param-card label.chk { display: flex; align-items: center; gap: 6px; }
 .param-card code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
 
+/* ===========================================================================
+   Pulido corporativo: iconos SVG, agrupación de KPIs, tablas (cabecera fija,
+   cebra, color por umbral, hover).
+   =========================================================================== */
+.ico { width: 18px; height: 18px; flex: 0 0 auto; vertical-align: middle; }
+.ico-xs { width: 12px; height: 12px; }
+
+/* Navegación */
+.nav-grupo { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: #6b7f92; padding: 14px 12px 5px; font-weight: 700; }
+.nav-grupo:first-child { padding-top: 2px; }
+.nav-btn { display: flex; align-items: center; gap: 10px; position: relative; }
+.nav-btn .ico { width: 17px; height: 17px; opacity: 0.85; }
+.nav-btn.activo .ico { opacity: 1; }
+.nav-btn.activo::before { content: ''; position: absolute; left: -14px; top: 7px; bottom: 7px; width: 3px; background: #7db1e6; border-radius: 0 3px 3px 0; }
+
+/* Botones con icono */
+.btn, .btn-sec { display: inline-flex; align-items: center; gap: 7px; }
+.btn .ico, .btn-sec .ico { width: 16px; height: 16px; }
+.btn-chico { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Privacidad / avisos con icono */
+.privacidad { display: flex; gap: 8px; align-items: flex-start; }
+.privacidad .ico { width: 16px; height: 16px; margin-top: 1px; }
+.dz-icono svg { width: 42px; height: 42px; color: #8aa0b4; stroke-width: 1.5; }
+.aviso-dotacion, .eh-aviso { display: flex; gap: 9px; align-items: flex-start; }
+.aviso-dotacion .ico { width: 18px; height: 18px; margin-top: 1px; color: var(--ambar); }
+.eh-aviso .ico { width: 17px; height: 17px; margin-top: 1px; color: var(--ambar); }
+
+/* Agrupación de tarjetas de KPI */
+.cards-wrap { display: flex; flex-direction: column; gap: 16px; margin-bottom: 22px; }
+.cards-grupo-titulo { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--txt-suave); margin: 0 0 9px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.cards-grupo-titulo::after { content: ''; flex: 1; height: 1px; background: var(--borde); }
+.cards { margin-bottom: 0; }
+.card { transition: box-shadow 0.15s, transform 0.15s; }
+.card:hover { box-shadow: 0 5px 16px rgba(16, 24, 40, 0.10); transform: translateY(-1px); }
+.card-delta { display: inline-flex; align-items: center; gap: 3px; }
+.card-delta .ico { width: 12px; height: 12px; }
+
+/* Tablas: cabecera fija, cebra, hover, color por umbral */
+.tabla thead th { position: sticky; top: 0; z-index: 2; box-shadow: inset 0 -1px 0 var(--borde); }
+.tabla tbody tr:nth-child(even) { background: #fafbfd; }
+.tabla tbody tr:hover { background: #eef4fb; }
+.cel-ok { background: rgba(30, 142, 78, 0.10); color: #176b3c; font-weight: 600; }
+.cel-amber { background: rgba(183, 121, 31, 0.13); color: #8a5a12; font-weight: 600; }
+.cel-rojo { background: rgba(192, 57, 43, 0.10); color: #a3291f; font-weight: 600; }
+.tabla-suc tbody tr { transition: background 0.1s; }
+.tabla th .ico-xs { margin-left: 3px; }
+.tabla th.orden { cursor: pointer; user-select: none; white-space: nowrap; }
+.tabla th.orden:hover { color: var(--tienda); }
+.tabla th.ordenado { color: var(--tienda); }
+
+/* Tablas grandes con scroll vertical y cabecera fija dentro del área */
+.tabla-suc-wrap, .tabla-alertas-wrap { max-height: 560px; overflow: auto; border: 1px solid var(--borde); border-radius: var(--radio); }
+.tabla-suc-wrap .tabla, .tabla-alertas-wrap .tabla { box-shadow: none; border-radius: 0; }
+
+/* Herramientas de tabla con icono de búsqueda */
+.busqueda-wrap { position: relative; display: inline-flex; align-items: center; }
+.busqueda-wrap .ico { position: absolute; left: 9px; width: 15px; height: 15px; color: var(--txt-suave); pointer-events: none; }
+.busqueda-wrap .input-busqueda { padding-left: 30px; }
+
 /* ---- Impresión / PDF ---- */
 @media print {
   .sidebar, .acciones, .dropzone, .progreso, .toast { display: none !important; }
@@ -375,17 +435,21 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           </div>
         </div>
         <nav class="nav">
-          <button data-vista="tienda" class="nav-btn">🏬 Tienda</button>
-          <button data-vista="logistica" class="nav-btn">📦 Logística</button>
-          <button data-vista="complementarios" class="nav-btn">🧩 Complementarios</button>
-          <button data-vista="alertas" class="nav-btn">🚨 Alertas</button>
-          <button data-vista="historico" class="nav-btn">🕓 Histórico</button>
-          <button data-vista="calidad" class="nav-btn">✅ Calidad</button>
-          <button data-vista="carga" class="nav-btn activo">📥 Carga</button>
-          <button data-vista="parametros" class="nav-btn">⚙️ Parámetros</button>
+          <div class="nav-grupo">Dashboards</div>
+          <button data-vista="tienda" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Tienda</span></button>
+          <button data-vista="logistica" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span>Logística</span></button>
+          <div class="nav-grupo">Análisis</div>
+          <button data-vista="complementarios" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg><span>Complementarios</span></button>
+          <button data-vista="alertas" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></button>
+          <button data-vista="historico" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 15 14"/></svg><span>Histórico</span></button>
+          <div class="nav-grupo">Datos</div>
+          <button data-vista="calidad" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>Calidad</span></button>
+          <button data-vista="carga" class="nav-btn activo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Carga</span></button>
+          <button data-vista="parametros" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Parámetros</span></button>
         </nav>
         <div class="privacidad">
-          🔒 Todo se procesa en tu navegador. No se envía nada a internet.
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Todo se procesa en tu navegador. No se envía nada a internet.</span>
         </div>
       </aside>
 
@@ -396,22 +460,23 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           <header class="vista-head">
             <h1>Carga de archivos</h1>
             <div class="acciones">
-              <button id="btnRecalcular" class="btn">Recalcular</button>
-              <button id="btnLimpiar" class="btn btn-sec">Limpiar todo</button>
+              <button id="btnRecalcular" class="btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span>Recalcular</span></button>
+              <button id="btnLimpiar" class="btn btn-sec"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Limpiar todo</span></button>
             </div>
           </header>
 
           <div class="dropzone" id="dropzone">
             <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple hidden />
             <div class="dz-inner">
-              <div class="dz-icono">⬆️</div>
+              <div class="dz-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
               <p><strong>Arrastra aquí</strong> los archivos de Dotación, Asistencia o Tiempo Extra</p>
               <p class="nota">o haz clic para elegir. Se aceptan .xlsx, .xls y .csv. El tipo se detecta por los encabezados.</p>
             </div>
           </div>
 
           <div class="aviso-dotacion">
-            ⚠️ La <strong>Dotación</strong> es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado. La Dotación se reemplaza con la última cargada; Asistencia y Tiempo Extra se acumulan (se deduplica por persona-día, gana el archivo más reciente).
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>La <strong>Dotación</strong> es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado. La Dotación se reemplaza con la última cargada; Asistencia y Tiempo Extra se acumulan (se deduplica por persona-día, gana el archivo más reciente).</span>
           </div>
 
           <h2>Datos cargados</h2>
@@ -3028,6 +3093,47 @@ function fmtDec1(n) {
 
 return { fmtMiles, fmtPct, fmtHoras, fmtDec1, DEFAULT_CONFIG };
 });
+__def("icons", function(__require){
+// =============================================================================
+// icons.js
+// Conjunto de iconos SVG (línea, estilo corporativo) para reemplazar emojis.
+// Se dibujan con `currentColor`, así heredan el color del contexto.
+// =============================================================================
+
+const P = {
+  tienda: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  logistica: '<rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+  complementarios: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+  alertas: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  historico: '<path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 15 14"/>',
+  calidad: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  carga: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  parametros: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  printer: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  refresh: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  warning: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+  save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
+  reset: '<path d="M3 2v6h6"/><path d="M3.51 8.5A9 9 0 1 1 3 12"/>',
+  up: '<polyline points="18 15 12 9 6 15"/>',
+  down: '<polyline points="6 9 12 15 18 9"/>',
+  file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+};
+
+/** Devuelve el SVG del icono indicado, con clase CSS opcional. */
+function icon(nombre, extra = '') {
+  const path = P[nombre] || '';
+  const cls = ('ico ' + extra).trim();
+  return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+}
+
+return { icon };
+});
 __def("storage", function(__require){
 // =============================================================================
 // storage.js
@@ -3187,8 +3293,18 @@ function limpiarGraficos() {
   instancias.clear();
 }
 
-const grid = { left: 8, right: 16, top: 30, bottom: 8, containLabel: true };
-const ejeTxt = { color: '#5a6b7b', fontSize: 11 };
+const FUENTE = '"Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif';
+const grid = { left: 8, right: 16, top: 34, bottom: 8, containLabel: true };
+const ejeTxt = { color: '#5a6b7b', fontSize: 11, fontFamily: FUENTE };
+const SPLIT = { lineStyle: { color: '#eef2f7' } };
+const EJE_LINE = { lineStyle: { color: '#dbe2ea' } };
+
+// Título y tooltip corporativos reutilizables.
+const tit = (t) => ({ text: t, left: 0, top: 2, textStyle: { fontSize: 13, fontWeight: 600, color: '#1f2933', fontFamily: FUENTE } });
+const TOOLTIP = {
+  backgroundColor: '#0f2436', borderWidth: 0, textStyle: { color: '#fff', fontSize: 12, fontFamily: FUENTE },
+  padding: [8, 12], extraCssText: 'border-radius:8px;box-shadow:0 6px 20px rgba(16,24,40,.25);',
+};
 
 function recortar(s, n = 22) {
   return s && s.length > n ? s.slice(0, n - 1) + '…' : s;
@@ -3201,12 +3317,15 @@ function barrasHorizontales(id, titulo, datos, color, sufijo = '', decimales = 1
   const cats = datos.map((d) => recortar(d.sucursal)).reverse();
   const vals = datos.map((d) => +d.valor.toFixed(decimales)).reverse();
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
-    grid,
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => v + sufijo },
-    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: { lineStyle: { color: '#eef2f7' } } },
-    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt },
-    series: [{ type: 'bar', data: vals, itemStyle: { color, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18 }],
+    title: tit(titulo),
+    grid: { ...grid, right: 44 },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => v + sufijo },
+    xAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value}' + sufijo }, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
+    yAxis: { type: 'category', data: cats, axisLabel: ejeTxt, axisLine: EJE_LINE, axisTick: { show: false } },
+    series: [{
+      type: 'bar', data: vals, itemStyle: { color, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18,
+      label: { show: true, position: 'right', color: '#5a6b7b', fontSize: 10.5, fontFamily: FUENTE, formatter: (p) => p.value + sufijo },
+    }],
   }, true);
 }
 
@@ -3216,9 +3335,9 @@ function dobleSerie(id, titulo, datos, color) {
   if (!inst) return;
   const cats = datos.map((d) => recortar(d.sucursal));
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60 },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { bottom: 0, textStyle: ejeTxt },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: 35 } },
     yAxis: { type: 'value', axisLabel: ejeTxt, splitLine: { lineStyle: { color: '#eef2f7' } } },
@@ -3235,13 +3354,13 @@ function tendencia(id, titulo, serie, color) {
   if (!inst) return;
   const cats = serie.map((s) => s.periodo);
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60, right: 40 },
-    tooltip: { trigger: 'axis' },
+    tooltip: { ...TOOLTIP, trigger: 'axis' },
     legend: { bottom: 0, textStyle: ejeTxt },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: cats.length > 12 ? 40 : 0 } },
     yAxis: [
-      { type: 'value', name: 'Días / Horas', axisLabel: ejeTxt, splitLine: { lineStyle: { color: '#eef2f7' } } },
+      { type: 'value', axisLabel: ejeTxt, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
     ],
     series: [
       { name: 'Tardanzas (días)', type: 'line', smooth: true, data: serie.map((s) => s.tardanzas), itemStyle: { color } },
@@ -3263,8 +3382,8 @@ function anillo(id, titulo, data) {
     { name: 'Falta injustificada', value: data.faltaInjust, itemStyle: { color: '#c0392b' } },
   ];
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    title: tit(titulo),
+    tooltip: { ...TOOLTIP, trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { bottom: 0, textStyle: ejeTxt },
     series: [{
       type: 'pie', radius: ['45%', '70%'], center: ['50%', '50%'], avoidLabelOverlap: true,
@@ -3279,9 +3398,9 @@ function hheeComparado(id, titulo, datos, color) {
   if (!inst) return;
   const cats = datos.map((d) => recortar(d.sucursal));
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60 },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + ' h' },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + ' h' },
     legend: { bottom: 0, textStyle: ejeTxt },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: 35 } },
     yAxis: { type: 'value', axisLabel: { ...ejeTxt, formatter: '{value} h' }, splitLine: { lineStyle: { color: '#eef2f7' } } },
@@ -3298,13 +3417,13 @@ function evolucionCortes(id, titulo, serie, color) {
   if (!inst) return;
   const cats = serie.map((s) => s.fecha);
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60, right: 50 },
-    tooltip: { trigger: 'axis' },
+    tooltip: { ...TOOLTIP, trigger: 'axis' },
     legend: { bottom: 0, textStyle: ejeTxt },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: cats.length > 8 ? 35 : 0 } },
     yAxis: [
-      { type: 'value', name: 'Incidencias', axisLabel: ejeTxt, splitLine: { lineStyle: { color: '#eef2f7' } } },
+      { type: 'value', axisLabel: ejeTxt, splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false } },
       { type: 'value', name: '% Reg.', max: 100, position: 'right', axisLabel: { ...ejeTxt, formatter: '{value}%' }, splitLine: { show: false } },
     ],
     series: [
@@ -3322,9 +3441,9 @@ function mallaPorSucursal(id, titulo, datos, color, meta = 95) {
   if (!inst) return;
   const cats = datos.map((d) => recortar(d.sucursal));
   inst.setOption({
-    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    title: tit(titulo),
     grid: { ...grid, bottom: 60 },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + '%' },
+    tooltip: { ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => (+v).toFixed(1) + '%' },
     xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: 35 } },
     yAxis: { type: 'value', max: 100, axisLabel: { ...ejeTxt, formatter: '{value}%' }, splitLine: { lineStyle: { color: '#eef2f7' } } },
     series: [{
@@ -3539,6 +3658,7 @@ __def("dashboards", function(__require){
 const { fmtMiles, fmtPct, fmtHoras, fmtDec1 } = __require("config");
 const charts = __require("charts");
 const { exportarExcel, exportarCSV } = __require("exports");
+const { icon } = __require("icons");
 
 const PALETA = { Tienda: '#1f4e78', 'Logística': '#375623' };
 
@@ -3577,6 +3697,15 @@ const CARDS = [
   { key: 'hheeReconH', label: 'HHEE reconocidas (h)', fmt: 'h', good: 'up', tip: 'Σ finales (reconocido/pagable) / 60.' },
   { key: 'hheeNoReconH', label: 'HHEE no reconocidas (h)', fmt: 'h', good: 'down', tip: 'Ejecutadas − reconocidas.' },
   { key: 'pctHHEERecon', label: '% HHEE reconocidas', fmt: 'pct', good: 'up', tip: 'Finales / ejecutadas.' },
+];
+
+// Agrupación de los KPIs en secciones, para una lectura más rápida.
+const GRUPOS_KPI = [
+  { titulo: 'Personal', keys: ['personas', 'fiscalizables', 'noFiscalizables'] },
+  { titulo: 'Asistencia y malla', keys: ['pctAsistencia', 'pctMalla', 'diasNoPlan', 'trabajadoresNoPlan'] },
+  { titulo: 'Puntualidad y fuga', keys: ['tardanzasDias', 'minTardanza', 'personasTardanza', 'pctTardanza', 'salidasAntDias', 'minSalidaAnt', 'fugaH', 'fugaHporFisc', 'diasJustificacion', 'minJustificados'] },
+  { titulo: 'Marcación', keys: ['marcasManuales', 'marcacionCompleta', 'marcacionIncompleta', 'faltasInjust', 'diasSinMarcacion', 'trabajoEnDescanso', 'excesoRefrigerioDias', 'trabajoFeriado'] },
+  { titulo: 'Horas extra (HHEE)', keys: ['hheeEjecH', 'hheeAutH', 'hheeReconH', 'hheeNoReconH', 'pctHHEERecon'] },
 ];
 
 // Columnas de la tabla por sucursal.
@@ -3659,14 +3788,14 @@ function crearDashboards({ callWorker, getCfg }) {
       <header class="vista-head">
         <h1>Dashboard ${dashboard}</h1>
         <div class="acciones">
-          <button class="btn btn-sec" data-accion="imprimir">Imprimir / PDF</button>
-          <button class="btn btn-sec" data-accion="csv">Exportar CSV</button>
-          <button class="btn" data-accion="excel">Exportar Excel</button>
+          <button class="btn btn-sec" data-accion="imprimir">${icon('printer')}<span>Imprimir / PDF</span></button>
+          <button class="btn btn-sec" data-accion="csv">${icon('download')}<span>CSV</span></button>
+          <button class="btn" data-accion="excel">${icon('download')}<span>Excel</span></button>
         </div>
       </header>
       <div class="encabezado-periodo" data-encabezado></div>
       <div class="filtros" data-filtros></div>
-      <div class="cards" data-cards></div>
+      <div class="cards-wrap" data-cards></div>
       <div class="top5" data-top5></div>
       <div class="graficos">
         <div class="grafico g-ancho" id="gr01"></div>
@@ -3680,7 +3809,7 @@ function crearDashboards({ callWorker, getCfg }) {
       </div>
       <h2>KPI por sucursal</h2>
       <div class="tabla-herramientas">
-        <input type="search" placeholder="Buscar sucursal…" data-buscar-suc class="input-busqueda" />
+        <span class="busqueda-wrap">${icon('search')}<input type="search" placeholder="Buscar sucursal…" data-buscar-suc class="input-busqueda" /></span>
         <span class="nota">Clic en una fila para ver el detalle por persona.</span>
       </div>
       <div data-tabla-suc></div>
@@ -3699,7 +3828,7 @@ function crearDashboards({ callWorker, getCfg }) {
         <div><span class="eh-lbl">Fecha de corte</span><b>${new Date().toLocaleDateString('es-PE')}</b></div>
         <div><span class="eh-lbl">Días persona-día</span><b>${fmtMiles(data.nFilas)}</b></div>
       </div>
-      <div class="eh-aviso">⚠️ La Dotación es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado.</div>`;
+      <div class="eh-aviso">${icon('warning')}<span>La Dotación es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado.</span></div>`;
   }
 
   // ---- Barra de filtros ----------------------------------------------------
@@ -3876,8 +4005,12 @@ function crearDashboards({ callWorker, getCfg }) {
   function pintarCards(dashboard, cont, data) {
     const el = cont.querySelector('[data-cards]');
     const color = PALETA[dashboard];
-    el.innerHTML = CARDS.map((c) => tarjeta(c, data, color)).join('');
-    // tooltips accesibles vía atributo title ya incluido
+    const porKey = Object.fromEntries(CARDS.map((c) => [c.key, c]));
+    el.innerHTML = GRUPOS_KPI.map((g) => `
+      <section class="cards-grupo">
+        <h3 class="cards-grupo-titulo">${g.titulo}</h3>
+        <div class="cards">${g.keys.map((k) => tarjeta(porKey[k], data, color)).join('')}</div>
+      </section>`).join('');
   }
 
   function tarjeta(c, data, color) {
@@ -3917,8 +4050,8 @@ function crearDashboards({ callWorker, getCfg }) {
     if (c.good === 'up') bueno = diff > 0;
     else if (c.good === 'down') bueno = diff < 0;
     const clase = bueno === null ? 'neutro' : bueno ? 'suben-bien' : 'suben-mal';
-    const flecha = diff > 0 ? '▲' : '▼';
-    return `<div class="card-delta ${clase}">${flecha} ${txt}</div>`;
+    const flecha = icon(diff > 0 ? 'up' : 'down', 'ico-xs');
+    return `<div class="card-delta ${clase}">${flecha}<span>${txt}</span></div>`;
   }
 
   // ---- Top 5 ---------------------------------------------------------------
@@ -3963,14 +4096,17 @@ function crearDashboards({ callWorker, getCfg }) {
       return (va - vb) * dir;
     });
     const th = COLS_SUC.map(
-      (c) => `<th data-ord="${c.key}" class="${c.tipo !== 'txt' ? 'num' : ''} ${campo === c.key ? 'ordenado' : ''}">${c.label}${campo === c.key ? (dir === -1 ? ' ▼' : ' ▲') : ''}</th>`
+      (c) => `<th data-ord="${c.key}" class="${c.tipo !== 'txt' ? 'num' : ''} ${campo === c.key ? 'ordenado' : ''}">${c.label}${campo === c.key ? icon(dir === -1 ? 'down' : 'up', 'ico-xs') : ''}</th>`
     ).join('');
     const tr = filas
       .map(
-        (s) => `<tr data-suc="${esc(s.sucursal)}">${COLS_SUC.map((c) => `<td class="${c.tipo !== 'txt' ? 'num' : ''}">${c.tipo === 'txt' ? esc(s[c.key]) : formato(s[c.key], c.tipo)}</td>`).join('')}</tr>`
+        (s) => `<tr data-suc="${esc(s.sucursal)}">${COLS_SUC.map((c) => {
+          const clase = [c.tipo !== 'txt' ? 'num' : '', celColor(c.key, s[c.key])].filter(Boolean).join(' ');
+          return `<td class="${clase}">${c.tipo === 'txt' ? esc(s[c.key]) : formato(s[c.key], c.tipo)}</td>`;
+        }).join('')}</tr>`
       )
       .join('');
-    host.innerHTML = `<table class="tabla tabla-suc"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+    host.innerHTML = `<div class="tabla-suc-wrap"><table class="tabla tabla-suc"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
     host.querySelectorAll('th[data-ord]').forEach((h) =>
       h.addEventListener('click', () => {
         const k = h.dataset.ord;
@@ -4048,6 +4184,24 @@ function crearDashboards({ callWorker, getCfg }) {
 }
 
 // --- Utilidades --------------------------------------------------------------
+// Color de celda según umbral (verde/ámbar/rojo) para lectura rápida.
+function celColor(key, val) {
+  if (typeof val !== 'number') return '';
+  const mayorMejor = (v, a, b) => (v >= a ? 'cel-ok' : v >= b ? 'cel-amber' : 'cel-rojo');
+  const menorMejor = (v, a, b) => (v <= a ? 'cel-ok' : v <= b ? 'cel-amber' : 'cel-rojo');
+  switch (key) {
+    case 'pctAsistencia':
+    case 'pctMalla':
+      return mayorMejor(val, 95, 90);
+    case 'pctHHEERecon':
+      return mayorMejor(val, 50, 30);
+    case 'pctTardanza':
+      return menorMejor(val, 5, 15);
+    default:
+      return '';
+  }
+}
+
 function formato(v, fmt) {
   if (fmt === 'pct') return fmtPct(v);
   if (fmt === 'h') return fmtHoras(v);
@@ -4080,6 +4234,7 @@ __def("panels", function(__require){
 
 const { fmtMiles, fmtPct, fmtDec1 } = __require("config");
 const { exportarExcel, exportarCSV, exportarExcelHojas, exportarExcelPorGrupo } = __require("exports");
+const { icon } = __require("icons");
 
 // Columnas de los cortes por segmento (las 12 métricas).
 const COLS_SEG = [
@@ -4123,6 +4278,7 @@ function crearPaneles({ callWorker, getCfg }) {
   const estAlerta = { dashboard: '', fechaDesde: null, fechaHasta: null, escala: 'mes' };
   let ultComp = null;
   let ultAlerta = null;
+  let ordenAlerta = { campo: null, dir: -1 };
 
   function setOpciones(op) { opciones = op; }
 
@@ -4132,7 +4288,7 @@ function crearPaneles({ callWorker, getCfg }) {
     if (!opciones) { cont.innerHTML = '<div class="proxima">Carga datos para ver los complementarios.</div>'; return; }
     cont.innerHTML = `
       <header class="vista-head"><h1>Complementarios</h1>
-        <div class="acciones"><button class="btn" data-exp-comp>Exportar Excel</button></div>
+        <div class="acciones"><button class="btn" data-exp-comp>${icon('download')}<span>Exportar Excel</span></button></div>
       </header>
       <div class="filtros" data-filtros></div>
       <div data-cuerpo><p class="vacio">Calculando…</p></div>`;
@@ -4205,13 +4361,13 @@ function crearPaneles({ callWorker, getCfg }) {
     cont.innerHTML = `
       <header class="vista-head"><h1>Alertas por persona</h1>
         <div class="acciones">
-          <button class="btn btn-sec" data-exp-csv>Exportar CSV</button>
-          <button class="btn" data-exp-jefe>Exportar por jefe (Excel)</button>
+          <button class="btn btn-sec" data-exp-csv>${icon('download')}<span>Exportar CSV</span></button>
+          <button class="btn" data-exp-jefe>${icon('download')}<span>Por jefe (Excel)</span></button>
         </div>
       </header>
       <div class="filtros" data-filtros></div>
       <div data-resumen></div>
-      <div class="tabla-herramientas"><input type="search" placeholder="Buscar persona / sucursal / jefe…" data-buscar class="input-busqueda" /></div>
+      <div class="tabla-herramientas"><span class="busqueda-wrap">${icon('search')}<input type="search" placeholder="Buscar persona / sucursal / jefe…" data-buscar class="input-busqueda" /></span></div>
       <div data-tabla><p class="vacio">Calculando…</p></div>`;
     cablearFiltrosSimples(cont, estAlerta, () => actualizarAlertas(cont), true);
     cont.querySelector('[data-exp-csv]').addEventListener('click', exportarAlertasCSV);
@@ -4239,14 +4395,24 @@ function crearPaneles({ callWorker, getCfg }) {
   function pintarTablaAlertas(cont, filtroTxt) {
     if (!ultAlerta) return;
     const q = (filtroTxt || '').toLowerCase();
-    let filas = ultAlerta.alertas;
+    let filas = ultAlerta.alertas.slice();
     if (q) filas = filas.filter((a) => (a.nombre + ' ' + a.sucursal + ' ' + a.jefe + ' ' + a.keyId).toLowerCase().includes(q));
+    if (ordenAlerta.campo) {
+      const { campo, dir } = ordenAlerta;
+      filas.sort((a, b) => (typeof a[campo] === 'string' ? a[campo].localeCompare(b[campo]) : a[campo] - b[campo]) * dir);
+    }
     const host = cont.querySelector('[data-tabla]');
     if (!filas.length) { host.innerHTML = '<p class="vacio">No hay personas que superen los umbrales.</p>'; return; }
-    const th = COLS_ALERTA.map((c) => `<th class="${c.tipo === 'int' ? 'num' : ''}">${c.label}</th>`).join('');
+    const th = COLS_ALERTA.map((c) => `<th data-ord="${c.key}" class="orden ${c.tipo === 'int' ? 'num' : ''} ${ordenAlerta.campo === c.key ? 'ordenado' : ''}">${c.label}${ordenAlerta.campo === c.key ? icon(dirIco(ordenAlerta.dir), 'ico-xs') : ''}</th>`).join('');
     const tr = filas.slice(0, 2000).map((a) => `<tr>${COLS_ALERTA.map((c) => celdaAlerta(a, c)).join('')}</tr>`).join('');
-    host.innerHTML = `<div class="tabla-scroll"><table class="tabla tabla-alertas"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>${filas.length > 2000 ? `<p class="nota">Mostrando 2.000 de ${fmtMiles(filas.length)}.</p>` : ''}`;
+    host.innerHTML = `<div class="tabla-alertas-wrap"><table class="tabla tabla-alertas"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>${filas.length > 2000 ? `<p class="nota">Mostrando 2.000 de ${fmtMiles(filas.length)}.</p>` : ''}`;
+    host.querySelectorAll('th[data-ord]').forEach((h) => h.addEventListener('click', () => {
+      const k = h.dataset.ord;
+      ordenAlerta = { campo: k, dir: ordenAlerta.campo === k ? -ordenAlerta.dir : (COLS_ALERTA.find((c) => c.key === k).tipo === 'txt' ? 1 : -1) };
+      pintarTablaAlertas(cont, filtroTxt);
+    }));
   }
+  function dirIco(dir) { return dir === -1 ? 'down' : 'up'; }
 
   function celdaAlerta(a, c) {
     if (c.tipo === 'nivel') {
@@ -4379,6 +4545,7 @@ const { crearDashboards } = __require("dashboards");
 const { crearPaneles } = __require("panels");
 const { resizeTodos, evolucionCortes: chartEvolucion } = __require("charts");
 const { compararCortes, evolucionCortes } = __require("historico");
+const { icon } = __require("icons");
 
 let cfg = null;
 let worker = null;
@@ -4595,7 +4762,7 @@ async function renderInventario() {
         <td>${escapeHtml(x.rango)}</td>
         <td class="num">${fmtMiles(x.filas)}</td>
         <td>${new Date(x.fechaCarga).toLocaleString('es-PE')}</td>
-        <td><button class="btn-chico btn-del" data-id="${x.id}">Eliminar</button></td>
+        <td><button class="btn-chico btn-del" data-id="${x.id}" title="Eliminar">${icon('trash', 'ico-xs')}<span>Eliminar</span></button></td>
       </tr>`).join('');
   cont.innerHTML = `
     <table class="tabla">
@@ -4662,7 +4829,7 @@ async function renderHistorico() {
   cont.innerHTML = `
     <header class="vista-head"><h1>Histórico de cortes</h1>
       <div class="acciones">
-        <button class="btn" data-guardar>Guardar corte actual</button>
+        <button class="btn" data-guardar>${icon('save')}<span>Guardar corte actual</span></button>
       </div>
     </header>
     <p class="nota">Cada carga de datos nuevos guarda un corte (foto de las incidencias: faltas, sin marcación, marcación incompleta y trabajó sin turno, en Tienda y Logística). ${fmtMiles(cortes.length)} corte(s) guardado(s).</p>
@@ -4691,7 +4858,7 @@ async function renderHistorico() {
       <td class="num">${fmtMiles(s.actuales - s.nuevas)}</td>
       <td class="num">${fmtMiles(s.regularizadas)}</td>
       <td class="num">${i === 0 ? '—' : fmtPct(s.pctRegularizacion)}</td>
-      <td><button class="btn-chico btn-del" data-corte="${c.id}">Eliminar</button></td>
+      <td><button class="btn-chico btn-del" data-corte="${c.id}" title="Eliminar">${icon('trash', 'ico-xs')}<span>Eliminar</span></button></td>
     </tr>`;
   }).reverse().join('');
 
@@ -4733,8 +4900,8 @@ function renderParametros() {
   cont.innerHTML = `
     <header class="vista-head"><h1>Parámetros</h1>
       <div class="acciones">
-        <button class="btn btn-sec" data-restaurar>Restaurar valores por defecto</button>
-        <button class="btn" data-guardar>Guardar y recalcular</button>
+        <button class="btn btn-sec" data-restaurar>${icon('reset')}<span>Restaurar valores por defecto</span></button>
+        <button class="btn" data-guardar>${icon('save')}<span>Guardar y recalcular</span></button>
       </div>
     </header>
     <p class="nota">Los parámetros se guardan en tu navegador (IndexedDB) y afectan a todos los cálculos.</p>

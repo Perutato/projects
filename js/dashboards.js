@@ -8,6 +8,7 @@
 import { fmtMiles, fmtPct, fmtHoras, fmtDec1 } from './config.js';
 import * as charts from './charts.js';
 import { exportarExcel, exportarCSV } from './exports.js';
+import { icon } from './icons.js';
 
 const PALETA = { Tienda: '#1f4e78', 'Logística': '#375623' };
 
@@ -46,6 +47,15 @@ const CARDS = [
   { key: 'hheeReconH', label: 'HHEE reconocidas (h)', fmt: 'h', good: 'up', tip: 'Σ finales (reconocido/pagable) / 60.' },
   { key: 'hheeNoReconH', label: 'HHEE no reconocidas (h)', fmt: 'h', good: 'down', tip: 'Ejecutadas − reconocidas.' },
   { key: 'pctHHEERecon', label: '% HHEE reconocidas', fmt: 'pct', good: 'up', tip: 'Finales / ejecutadas.' },
+];
+
+// Agrupación de los KPIs en secciones, para una lectura más rápida.
+const GRUPOS_KPI = [
+  { titulo: 'Personal', keys: ['personas', 'fiscalizables', 'noFiscalizables'] },
+  { titulo: 'Asistencia y malla', keys: ['pctAsistencia', 'pctMalla', 'diasNoPlan', 'trabajadoresNoPlan'] },
+  { titulo: 'Puntualidad y fuga', keys: ['tardanzasDias', 'minTardanza', 'personasTardanza', 'pctTardanza', 'salidasAntDias', 'minSalidaAnt', 'fugaH', 'fugaHporFisc', 'diasJustificacion', 'minJustificados'] },
+  { titulo: 'Marcación', keys: ['marcasManuales', 'marcacionCompleta', 'marcacionIncompleta', 'faltasInjust', 'diasSinMarcacion', 'trabajoEnDescanso', 'excesoRefrigerioDias', 'trabajoFeriado'] },
+  { titulo: 'Horas extra (HHEE)', keys: ['hheeEjecH', 'hheeAutH', 'hheeReconH', 'hheeNoReconH', 'pctHHEERecon'] },
 ];
 
 // Columnas de la tabla por sucursal.
@@ -128,14 +138,14 @@ export function crearDashboards({ callWorker, getCfg }) {
       <header class="vista-head">
         <h1>Dashboard ${dashboard}</h1>
         <div class="acciones">
-          <button class="btn btn-sec" data-accion="imprimir">Imprimir / PDF</button>
-          <button class="btn btn-sec" data-accion="csv">Exportar CSV</button>
-          <button class="btn" data-accion="excel">Exportar Excel</button>
+          <button class="btn btn-sec" data-accion="imprimir">${icon('printer')}<span>Imprimir / PDF</span></button>
+          <button class="btn btn-sec" data-accion="csv">${icon('download')}<span>CSV</span></button>
+          <button class="btn" data-accion="excel">${icon('download')}<span>Excel</span></button>
         </div>
       </header>
       <div class="encabezado-periodo" data-encabezado></div>
       <div class="filtros" data-filtros></div>
-      <div class="cards" data-cards></div>
+      <div class="cards-wrap" data-cards></div>
       <div class="top5" data-top5></div>
       <div class="graficos">
         <div class="grafico g-ancho" id="gr01"></div>
@@ -149,7 +159,7 @@ export function crearDashboards({ callWorker, getCfg }) {
       </div>
       <h2>KPI por sucursal</h2>
       <div class="tabla-herramientas">
-        <input type="search" placeholder="Buscar sucursal…" data-buscar-suc class="input-busqueda" />
+        <span class="busqueda-wrap">${icon('search')}<input type="search" placeholder="Buscar sucursal…" data-buscar-suc class="input-busqueda" /></span>
         <span class="nota">Clic en una fila para ver el detalle por persona.</span>
       </div>
       <div data-tabla-suc></div>
@@ -168,7 +178,7 @@ export function crearDashboards({ callWorker, getCfg }) {
         <div><span class="eh-lbl">Fecha de corte</span><b>${new Date().toLocaleDateString('es-PE')}</b></div>
         <div><span class="eh-lbl">Días persona-día</span><b>${fmtMiles(data.nFilas)}</b></div>
       </div>
-      <div class="eh-aviso">⚠️ La Dotación es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado.</div>`;
+      <div class="eh-aviso">${icon('warning')}<span>La Dotación es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado.</span></div>`;
   }
 
   // ---- Barra de filtros ----------------------------------------------------
@@ -345,8 +355,12 @@ export function crearDashboards({ callWorker, getCfg }) {
   function pintarCards(dashboard, cont, data) {
     const el = cont.querySelector('[data-cards]');
     const color = PALETA[dashboard];
-    el.innerHTML = CARDS.map((c) => tarjeta(c, data, color)).join('');
-    // tooltips accesibles vía atributo title ya incluido
+    const porKey = Object.fromEntries(CARDS.map((c) => [c.key, c]));
+    el.innerHTML = GRUPOS_KPI.map((g) => `
+      <section class="cards-grupo">
+        <h3 class="cards-grupo-titulo">${g.titulo}</h3>
+        <div class="cards">${g.keys.map((k) => tarjeta(porKey[k], data, color)).join('')}</div>
+      </section>`).join('');
   }
 
   function tarjeta(c, data, color) {
@@ -386,8 +400,8 @@ export function crearDashboards({ callWorker, getCfg }) {
     if (c.good === 'up') bueno = diff > 0;
     else if (c.good === 'down') bueno = diff < 0;
     const clase = bueno === null ? 'neutro' : bueno ? 'suben-bien' : 'suben-mal';
-    const flecha = diff > 0 ? '▲' : '▼';
-    return `<div class="card-delta ${clase}">${flecha} ${txt}</div>`;
+    const flecha = icon(diff > 0 ? 'up' : 'down', 'ico-xs');
+    return `<div class="card-delta ${clase}">${flecha}<span>${txt}</span></div>`;
   }
 
   // ---- Top 5 ---------------------------------------------------------------
@@ -432,14 +446,17 @@ export function crearDashboards({ callWorker, getCfg }) {
       return (va - vb) * dir;
     });
     const th = COLS_SUC.map(
-      (c) => `<th data-ord="${c.key}" class="${c.tipo !== 'txt' ? 'num' : ''} ${campo === c.key ? 'ordenado' : ''}">${c.label}${campo === c.key ? (dir === -1 ? ' ▼' : ' ▲') : ''}</th>`
+      (c) => `<th data-ord="${c.key}" class="${c.tipo !== 'txt' ? 'num' : ''} ${campo === c.key ? 'ordenado' : ''}">${c.label}${campo === c.key ? icon(dir === -1 ? 'down' : 'up', 'ico-xs') : ''}</th>`
     ).join('');
     const tr = filas
       .map(
-        (s) => `<tr data-suc="${esc(s.sucursal)}">${COLS_SUC.map((c) => `<td class="${c.tipo !== 'txt' ? 'num' : ''}">${c.tipo === 'txt' ? esc(s[c.key]) : formato(s[c.key], c.tipo)}</td>`).join('')}</tr>`
+        (s) => `<tr data-suc="${esc(s.sucursal)}">${COLS_SUC.map((c) => {
+          const clase = [c.tipo !== 'txt' ? 'num' : '', celColor(c.key, s[c.key])].filter(Boolean).join(' ');
+          return `<td class="${clase}">${c.tipo === 'txt' ? esc(s[c.key]) : formato(s[c.key], c.tipo)}</td>`;
+        }).join('')}</tr>`
       )
       .join('');
-    host.innerHTML = `<table class="tabla tabla-suc"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+    host.innerHTML = `<div class="tabla-suc-wrap"><table class="tabla tabla-suc"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
     host.querySelectorAll('th[data-ord]').forEach((h) =>
       h.addEventListener('click', () => {
         const k = h.dataset.ord;
@@ -517,6 +534,24 @@ export function crearDashboards({ callWorker, getCfg }) {
 }
 
 // --- Utilidades --------------------------------------------------------------
+// Color de celda según umbral (verde/ámbar/rojo) para lectura rápida.
+function celColor(key, val) {
+  if (typeof val !== 'number') return '';
+  const mayorMejor = (v, a, b) => (v >= a ? 'cel-ok' : v >= b ? 'cel-amber' : 'cel-rojo');
+  const menorMejor = (v, a, b) => (v <= a ? 'cel-ok' : v <= b ? 'cel-amber' : 'cel-rojo');
+  switch (key) {
+    case 'pctAsistencia':
+    case 'pctMalla':
+      return mayorMejor(val, 95, 90);
+    case 'pctHHEERecon':
+      return mayorMejor(val, 50, 30);
+    case 'pctTardanza':
+      return menorMejor(val, 5, 15);
+    default:
+      return '';
+  }
+}
+
 function formato(v, fmt) {
   if (fmt === 'pct') return fmtPct(v);
   if (fmt === 'h') return fmtHoras(v);

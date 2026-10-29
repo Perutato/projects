@@ -275,6 +275,66 @@ h3 { font-size: 15px; margin: 22px 0 8px; }
 .param-card label.chk { display: flex; align-items: center; gap: 6px; }
 .param-card code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
 
+/* ===========================================================================
+   Pulido corporativo: iconos SVG, agrupación de KPIs, tablas (cabecera fija,
+   cebra, color por umbral, hover).
+   =========================================================================== */
+.ico { width: 18px; height: 18px; flex: 0 0 auto; vertical-align: middle; }
+.ico-xs { width: 12px; height: 12px; }
+
+/* Navegación */
+.nav-grupo { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: #6b7f92; padding: 14px 12px 5px; font-weight: 700; }
+.nav-grupo:first-child { padding-top: 2px; }
+.nav-btn { display: flex; align-items: center; gap: 10px; position: relative; }
+.nav-btn .ico { width: 17px; height: 17px; opacity: 0.85; }
+.nav-btn.activo .ico { opacity: 1; }
+.nav-btn.activo::before { content: ''; position: absolute; left: -14px; top: 7px; bottom: 7px; width: 3px; background: #7db1e6; border-radius: 0 3px 3px 0; }
+
+/* Botones con icono */
+.btn, .btn-sec { display: inline-flex; align-items: center; gap: 7px; }
+.btn .ico, .btn-sec .ico { width: 16px; height: 16px; }
+.btn-chico { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Privacidad / avisos con icono */
+.privacidad { display: flex; gap: 8px; align-items: flex-start; }
+.privacidad .ico { width: 16px; height: 16px; margin-top: 1px; }
+.dz-icono svg { width: 42px; height: 42px; color: #8aa0b4; stroke-width: 1.5; }
+.aviso-dotacion, .eh-aviso { display: flex; gap: 9px; align-items: flex-start; }
+.aviso-dotacion .ico { width: 18px; height: 18px; margin-top: 1px; color: var(--ambar); }
+.eh-aviso .ico { width: 17px; height: 17px; margin-top: 1px; color: var(--ambar); }
+
+/* Agrupación de tarjetas de KPI */
+.cards-wrap { display: flex; flex-direction: column; gap: 16px; margin-bottom: 22px; }
+.cards-grupo-titulo { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--txt-suave); margin: 0 0 9px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.cards-grupo-titulo::after { content: ''; flex: 1; height: 1px; background: var(--borde); }
+.cards { margin-bottom: 0; }
+.card { transition: box-shadow 0.15s, transform 0.15s; }
+.card:hover { box-shadow: 0 5px 16px rgba(16, 24, 40, 0.10); transform: translateY(-1px); }
+.card-delta { display: inline-flex; align-items: center; gap: 3px; }
+.card-delta .ico { width: 12px; height: 12px; }
+
+/* Tablas: cabecera fija, cebra, hover, color por umbral */
+.tabla thead th { position: sticky; top: 0; z-index: 2; box-shadow: inset 0 -1px 0 var(--borde); }
+.tabla tbody tr:nth-child(even) { background: #fafbfd; }
+.tabla tbody tr:hover { background: #eef4fb; }
+.cel-ok { background: rgba(30, 142, 78, 0.10); color: #176b3c; font-weight: 600; }
+.cel-amber { background: rgba(183, 121, 31, 0.13); color: #8a5a12; font-weight: 600; }
+.cel-rojo { background: rgba(192, 57, 43, 0.10); color: #a3291f; font-weight: 600; }
+.tabla-suc tbody tr { transition: background 0.1s; }
+.tabla th .ico-xs { margin-left: 3px; }
+.tabla th.orden { cursor: pointer; user-select: none; white-space: nowrap; }
+.tabla th.orden:hover { color: var(--tienda); }
+.tabla th.ordenado { color: var(--tienda); }
+
+/* Tablas grandes con scroll vertical y cabecera fija dentro del área */
+.tabla-suc-wrap, .tabla-alertas-wrap { max-height: 560px; overflow: auto; border: 1px solid var(--borde); border-radius: var(--radio); }
+.tabla-suc-wrap .tabla, .tabla-alertas-wrap .tabla { box-shadow: none; border-radius: 0; }
+
+/* Herramientas de tabla con icono de búsqueda */
+.busqueda-wrap { position: relative; display: inline-flex; align-items: center; }
+.busqueda-wrap .ico { position: absolute; left: 9px; width: 15px; height: 15px; color: var(--txt-suave); pointer-events: none; }
+.busqueda-wrap .input-busqueda { padding-left: 30px; }
+
 /* ---- Impresión / PDF ---- */
 @media print {
   .sidebar, .acciones, .dropzone, .progreso, .toast { display: none !important; }

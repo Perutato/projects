@@ -28,6 +28,7 @@ import { crearDashboards } from './dashboards.js';
 import { crearPaneles } from './panels.js';
 import { resizeTodos, evolucionCortes as chartEvolucion } from './charts.js';
 import { compararCortes, evolucionCortes } from './historico.js';
+import { icon } from './icons.js';
 
 let cfg = null;
 let worker = null;
@@ -244,7 +245,7 @@ async function renderInventario() {
         <td>${escapeHtml(x.rango)}</td>
         <td class="num">${fmtMiles(x.filas)}</td>
         <td>${new Date(x.fechaCarga).toLocaleString('es-PE')}</td>
-        <td><button class="btn-chico btn-del" data-id="${x.id}">Eliminar</button></td>
+        <td><button class="btn-chico btn-del" data-id="${x.id}" title="Eliminar">${icon('trash', 'ico-xs')}<span>Eliminar</span></button></td>
       </tr>`).join('');
   cont.innerHTML = `
     <table class="tabla">
@@ -311,7 +312,7 @@ async function renderHistorico() {
   cont.innerHTML = `
     <header class="vista-head"><h1>Histórico de cortes</h1>
       <div class="acciones">
-        <button class="btn" data-guardar>Guardar corte actual</button>
+        <button class="btn" data-guardar>${icon('save')}<span>Guardar corte actual</span></button>
       </div>
     </header>
     <p class="nota">Cada carga de datos nuevos guarda un corte (foto de las incidencias: faltas, sin marcación, marcación incompleta y trabajó sin turno, en Tienda y Logística). ${fmtMiles(cortes.length)} corte(s) guardado(s).</p>
@@ -340,7 +341,7 @@ async function renderHistorico() {
       <td class="num">${fmtMiles(s.actuales - s.nuevas)}</td>
       <td class="num">${fmtMiles(s.regularizadas)}</td>
       <td class="num">${i === 0 ? '—' : fmtPct(s.pctRegularizacion)}</td>
-      <td><button class="btn-chico btn-del" data-corte="${c.id}">Eliminar</button></td>
+      <td><button class="btn-chico btn-del" data-corte="${c.id}" title="Eliminar">${icon('trash', 'ico-xs')}<span>Eliminar</span></button></td>
     </tr>`;
   }).reverse().join('');
 
@@ -382,8 +383,8 @@ function renderParametros() {
   cont.innerHTML = `
     <header class="vista-head"><h1>Parámetros</h1>
       <div class="acciones">
-        <button class="btn btn-sec" data-restaurar>Restaurar valores por defecto</button>
-        <button class="btn" data-guardar>Guardar y recalcular</button>
+        <button class="btn btn-sec" data-restaurar>${icon('reset')}<span>Restaurar valores por defecto</span></button>
+        <button class="btn" data-guardar>${icon('save')}<span>Guardar y recalcular</span></button>
       </div>
     </header>
     <p class="nota">Los parámetros se guardan en tu navegador (IndexedDB) y afectan a todos los cálculos.</p>

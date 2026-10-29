@@ -20,17 +20,21 @@
           </div>
         </div>
         <nav class="nav">
-          <button data-vista="tienda" class="nav-btn">🏬 Tienda</button>
-          <button data-vista="logistica" class="nav-btn">📦 Logística</button>
-          <button data-vista="complementarios" class="nav-btn">🧩 Complementarios</button>
-          <button data-vista="alertas" class="nav-btn">🚨 Alertas</button>
-          <button data-vista="historico" class="nav-btn">🕓 Histórico</button>
-          <button data-vista="calidad" class="nav-btn">✅ Calidad</button>
-          <button data-vista="carga" class="nav-btn activo">📥 Carga</button>
-          <button data-vista="parametros" class="nav-btn">⚙️ Parámetros</button>
+          <div class="nav-grupo">Dashboards</div>
+          <button data-vista="tienda" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Tienda</span></button>
+          <button data-vista="logistica" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span>Logística</span></button>
+          <div class="nav-grupo">Análisis</div>
+          <button data-vista="complementarios" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg><span>Complementarios</span></button>
+          <button data-vista="alertas" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></button>
+          <button data-vista="historico" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 15 14"/></svg><span>Histórico</span></button>
+          <div class="nav-grupo">Datos</div>
+          <button data-vista="calidad" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>Calidad</span></button>
+          <button data-vista="carga" class="nav-btn activo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Carga</span></button>
+          <button data-vista="parametros" class="nav-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Parámetros</span></button>
         </nav>
         <div class="privacidad">
-          🔒 Todo se procesa en tu navegador. No se envía nada a internet.
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Todo se procesa en tu navegador. No se envía nada a internet.</span>
         </div>
       </aside>
 
@@ -41,22 +45,23 @@
           <header class="vista-head">
             <h1>Carga de archivos</h1>
             <div class="acciones">
-              <button id="btnRecalcular" class="btn">Recalcular</button>
-              <button id="btnLimpiar" class="btn btn-sec">Limpiar todo</button>
+              <button id="btnRecalcular" class="btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span>Recalcular</span></button>
+              <button id="btnLimpiar" class="btn btn-sec"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Limpiar todo</span></button>
             </div>
           </header>
 
           <div class="dropzone" id="dropzone">
             <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple hidden />
             <div class="dz-inner">
-              <div class="dz-icono">⬆️</div>
+              <div class="dz-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
               <p><strong>Arrastra aquí</strong> los archivos de Dotación, Asistencia o Tiempo Extra</p>
               <p class="nota">o haz clic para elegir. Se aceptan .xlsx, .xls y .csv. El tipo se detecta por los encabezados.</p>
             </div>
           </div>
 
           <div class="aviso-dotacion">
-            ⚠️ La <strong>Dotación</strong> es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado. La Dotación se reemplaza con la última cargada; Asistencia y Tiempo Extra se acumulan (se deduplica por persona-día, gana el archivo más reciente).
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>La <strong>Dotación</strong> es una foto <em>actual</em>: sucursal, cargo y jefe son los vigentes hoy, aunque la asistencia sea de un período pasado. La Dotación se reemplaza con la última cargada; Asistencia y Tiempo Extra se acumulan (se deduplica por persona-día, gana el archivo más reciente).</span>
           </div>
 
           <h2>Datos cargados</h2>

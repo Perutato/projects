@@ -6,6 +6,7 @@
 
 import { fmtMiles, fmtPct, fmtDec1 } from './config.js';
 import { exportarExcel, exportarCSV, exportarExcelHojas, exportarExcelPorGrupo } from './exports.js';
+import { icon } from './icons.js';
 
 // Columnas de los cortes por segmento (las 12 métricas).
 const COLS_SEG = [
@@ -49,6 +50,7 @@ export function crearPaneles({ callWorker, getCfg }) {
   const estAlerta = { dashboard: '', fechaDesde: null, fechaHasta: null, escala: 'mes' };
   let ultComp = null;
   let ultAlerta = null;
+  let ordenAlerta = { campo: null, dir: -1 };
 
   function setOpciones(op) { opciones = op; }
 
@@ -58,7 +60,7 @@ export function crearPaneles({ callWorker, getCfg }) {
     if (!opciones) { cont.innerHTML = '<div class="proxima">Carga datos para ver los complementarios.</div>'; return; }
     cont.innerHTML = `
       <header class="vista-head"><h1>Complementarios</h1>
-        <div class="acciones"><button class="btn" data-exp-comp>Exportar Excel</button></div>
+        <div class="acciones"><button class="btn" data-exp-comp>${icon('download')}<span>Exportar Excel</span></button></div>
       </header>
       <div class="filtros" data-filtros></div>
       <div data-cuerpo><p class="vacio">Calculando…</p></div>`;
@@ -131,13 +133,13 @@ export function crearPaneles({ callWorker, getCfg }) {
     cont.innerHTML = `
       <header class="vista-head"><h1>Alertas por persona</h1>
         <div class="acciones">
-          <button class="btn btn-sec" data-exp-csv>Exportar CSV</button>
-          <button class="btn" data-exp-jefe>Exportar por jefe (Excel)</button>
+          <button class="btn btn-sec" data-exp-csv>${icon('download')}<span>Exportar CSV</span></button>
+          <button class="btn" data-exp-jefe>${icon('download')}<span>Por jefe (Excel)</span></button>
         </div>
       </header>
       <div class="filtros" data-filtros></div>
       <div data-resumen></div>
-      <div class="tabla-herramientas"><input type="search" placeholder="Buscar persona / sucursal / jefe…" data-buscar class="input-busqueda" /></div>
+      <div class="tabla-herramientas"><span class="busqueda-wrap">${icon('search')}<input type="search" placeholder="Buscar persona / sucursal / jefe…" data-buscar class="input-busqueda" /></span></div>
       <div data-tabla><p class="vacio">Calculando…</p></div>`;
     cablearFiltrosSimples(cont, estAlerta, () => actualizarAlertas(cont), true);
     cont.querySelector('[data-exp-csv]').addEventListener('click', exportarAlertasCSV);
@@ -165,14 +167,24 @@ export function crearPaneles({ callWorker, getCfg }) {
   function pintarTablaAlertas(cont, filtroTxt) {
     if (!ultAlerta) return;
     const q = (filtroTxt || '').toLowerCase();
-    let filas = ultAlerta.alertas;
+    let filas = ultAlerta.alertas.slice();
     if (q) filas = filas.filter((a) => (a.nombre + ' ' + a.sucursal + ' ' + a.jefe + ' ' + a.keyId).toLowerCase().includes(q));
+    if (ordenAlerta.campo) {
+      const { campo, dir } = ordenAlerta;
+      filas.sort((a, b) => (typeof a[campo] === 'string' ? a[campo].localeCompare(b[campo]) : a[campo] - b[campo]) * dir);
+    }
     const host = cont.querySelector('[data-tabla]');
     if (!filas.length) { host.innerHTML = '<p class="vacio">No hay personas que superen los umbrales.</p>'; return; }
-    const th = COLS_ALERTA.map((c) => `<th class="${c.tipo === 'int' ? 'num' : ''}">${c.label}</th>`).join('');
+    const th = COLS_ALERTA.map((c) => `<th data-ord="${c.key}" class="orden ${c.tipo === 'int' ? 'num' : ''} ${ordenAlerta.campo === c.key ? 'ordenado' : ''}">${c.label}${ordenAlerta.campo === c.key ? icon(dirIco(ordenAlerta.dir), 'ico-xs') : ''}</th>`).join('');
     const tr = filas.slice(0, 2000).map((a) => `<tr>${COLS_ALERTA.map((c) => celdaAlerta(a, c)).join('')}</tr>`).join('');
-    host.innerHTML = `<div class="tabla-scroll"><table class="tabla tabla-alertas"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>${filas.length > 2000 ? `<p class="nota">Mostrando 2.000 de ${fmtMiles(filas.length)}.</p>` : ''}`;
+    host.innerHTML = `<div class="tabla-alertas-wrap"><table class="tabla tabla-alertas"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>${filas.length > 2000 ? `<p class="nota">Mostrando 2.000 de ${fmtMiles(filas.length)}.</p>` : ''}`;
+    host.querySelectorAll('th[data-ord]').forEach((h) => h.addEventListener('click', () => {
+      const k = h.dataset.ord;
+      ordenAlerta = { campo: k, dir: ordenAlerta.campo === k ? -ordenAlerta.dir : (COLS_ALERTA.find((c) => c.key === k).tipo === 'txt' ? 1 : -1) };
+      pintarTablaAlertas(cont, filtroTxt);
+    }));
   }
+  function dirIco(dir) { return dir === -1 ? 'down' : 'up'; }
 
   function celdaAlerta(a, c) {
     if (c.tipo === 'nivel') {

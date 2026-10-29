@@ -17,7 +17,7 @@ const ROOT = path.dirname(new URL(import.meta.url).pathname);
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 // Módulos que corren en el hilo principal y en el worker (ids relativos a js/).
-const MAIN = ['config', 'storage', 'charts', 'exports', 'historico', 'dashboards', 'panels', 'app'];
+const MAIN = ['config', 'icons', 'storage', 'charts', 'exports', 'historico', 'dashboards', 'panels', 'app'];
 const WORKER = [
   'config', 'parsers/common', 'parsers/dotacion', 'parsers/asistencia',
   'parsers/tiempoExtra', 'model', 'kpis', 'quality', 'complementarios', 'alerts', 'worker',
