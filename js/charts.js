@@ -137,6 +137,30 @@ export function hheeComparado(id, titulo, datos, color) {
   }, true);
 }
 
+/** Evolución de incidencias por corte (barras + línea de % regularización). */
+export function evolucionCortes(id, titulo, serie, color) {
+  const inst = obtener(id);
+  if (!inst) return;
+  const cats = serie.map((s) => s.fecha);
+  inst.setOption({
+    title: { text: titulo, left: 0, top: 0, textStyle: { fontSize: 13, color: '#1f2933' } },
+    grid: { ...grid, bottom: 60, right: 50 },
+    tooltip: { trigger: 'axis' },
+    legend: { bottom: 0, textStyle: ejeTxt },
+    xAxis: { type: 'category', data: cats, axisLabel: { ...ejeTxt, rotate: cats.length > 8 ? 35 : 0 } },
+    yAxis: [
+      { type: 'value', name: 'Incidencias', axisLabel: ejeTxt, splitLine: { lineStyle: { color: '#eef2f7' } } },
+      { type: 'value', name: '% Reg.', max: 100, position: 'right', axisLabel: { ...ejeTxt, formatter: '{value}%' }, splitLine: { show: false } },
+    ],
+    series: [
+      { name: 'Actuales', type: 'bar', data: serie.map((s) => s.actuales), itemStyle: { color } },
+      { name: 'Nuevas', type: 'bar', data: serie.map((s) => s.nuevas), itemStyle: { color: '#c0392b' } },
+      { name: 'Regularizadas', type: 'bar', data: serie.map((s) => s.regularizadas), itemStyle: { color: '#1e8e4e' } },
+      { name: '% Regularización', type: 'line', yAxisIndex: 1, smooth: true, data: serie.map((s) => +s.pctRegularizacion.toFixed(1)), itemStyle: { color: '#6a51a3' } },
+    ],
+  }, true);
+}
+
 /** % cumplimiento de malla por sucursal con línea de meta. */
 export function mallaPorSucursal(id, titulo, datos, color, meta = 95) {
   const inst = obtener(id);

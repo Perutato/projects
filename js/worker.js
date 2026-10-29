@@ -90,6 +90,8 @@ async function manejar(msg) {
       return construirAlertas(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG);
     case 'detalleSucursal':
       return detalleSucursal(msg);
+    case 'incidencias':
+      return { incidencias: calcularIncidencias() };
     default:
       throw new Error('Mensaje desconocido: ' + msg.type);
   }
@@ -105,6 +107,7 @@ function parseFile({ buffer, fileName, lote, cfg }) {
   if (tipo === 'dotacion') {
     const { personas } = parseDotacion(aoa, conf);
     payload.personas = personas;
+    payload.aoa = aoa; // se guarda el crudo para re-derivar con parámetros nuevos
     payload.filas = personas.length;
     payload.rango = 'Foto actual';
   } else if (tipo === 'asistencia') {
@@ -125,21 +128,25 @@ function parseFile({ buffer, fileName, lote, cfg }) {
   return payload;
 }
 
-function recalcular({ personas, asistencia, tiempoExtra, cfg, meta }) {
+function recalcular({ personas, dotacionAoa, asistencia, tiempoExtra, cfg, meta }) {
   const conf = cfg || DEFAULT_CONFIG;
+  // Si tenemos el crudo de la Dotación, la re-derivamos con los parámetros
+  // actuales (así cambios en mapeo/ sindicatos/ campañero/ jornada toman efecto).
+  let per = personas || [];
+  if (dotacionAoa && dotacionAoa.length) per = parseDotacion(dotacionAoa, conf).personas;
   self.postMessage({ type: 'progress', fase: 'modelo' });
   const modelo = construirModelo({
-    personas: personas || [],
+    personas: per,
     asistencia: asistencia || [],
     tiempoExtra: tiempoExtra || [],
     cfg: conf,
   });
-  MODELO = { filas: modelo.filas, teResumen: modelo.teResumen, personas: personas || [] };
+  MODELO = { filas: modelo.filas, teResumen: modelo.teResumen, personas: per };
 
   self.postMessage({ type: 'progress', fase: 'calidad' });
   const calidad = calcularCalidad({
     filas: modelo.filas,
-    personas: personas || [],
+    personas: per,
     teResumen: modelo.teResumen,
     teDedup: modelo.teDedup,
     meta: meta || {},
@@ -183,6 +190,24 @@ function detalleSucursal({ sucursal, filtros, cfg }) {
   }
   const personas = [...porPersona.values()].sort((a, b) => b.tardanzas - a.tardanzas);
   return { sucursal, personas, nFilas: base.length };
+}
+
+/**
+ * Calcula las incidencias del modelo actual (sólo Tienda/Logística).
+ * Una incidencia = { k: keyDia|tipo, s: sucursal, j: jefe, d: dashboard, t: tipo }.
+ */
+function calcularIncidencias() {
+  const out = [];
+  for (const f of MODELO.filas) {
+    if (f.dashboard !== 'Tienda' && f.dashboard !== 'Logística') continue;
+    const tipos = [];
+    if (f.estadoDia === 'Falta injustificada') tipos.push('Falta injustificada');
+    if (f.estadoDia === 'Sin marcación') tipos.push('Sin marcación');
+    if (f.estadoDia === 'Marcación incompleta') tipos.push('Marcación incompleta');
+    if (f.trabajoSinTurno === 1) tipos.push('Trabajó sin turno');
+    for (const t of tipos) out.push({ k: f.keyDia + '|' + t, s: f.sucursal, j: f.jefe, d: f.dashboard, t });
+  }
+  return out;
 }
 
 /** Opciones distintas para los filtros (sólo dashboards Tienda/Logística). */

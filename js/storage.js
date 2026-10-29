@@ -68,6 +68,22 @@ export async function setCortes(cortes) {
   await set(K.CORTES, cortes);
 }
 
+/** Guarda un nuevo corte (ordena por fecha ascendente). */
+export async function guardarCorte(corte) {
+  const cortes = await getCortes();
+  cortes.push(corte);
+  cortes.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  await setCortes(cortes);
+  return cortes;
+}
+
+/** Elimina un corte por id. */
+export async function eliminarCorte(id) {
+  const cortes = (await getCortes()).filter((c) => c.id !== id);
+  await setCortes(cortes);
+  return cortes;
+}
+
 /** Devuelve el siguiente número de lote (incremental). */
 export async function siguienteLote() {
   const n = ((await get(K.LOTE_SEQ)) || 0) + 1;

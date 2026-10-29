@@ -17,7 +17,7 @@ const ROOT = path.dirname(new URL(import.meta.url).pathname);
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 // Módulos que corren en el hilo principal y en el worker (ids relativos a js/).
-const MAIN = ['config', 'storage', 'charts', 'exports', 'dashboards', 'panels', 'app'];
+const MAIN = ['config', 'storage', 'charts', 'exports', 'historico', 'dashboards', 'panels', 'app'];
 const WORKER = [
   'config', 'parsers/common', 'parsers/dotacion', 'parsers/asistencia',
   'parsers/tiempoExtra', 'model', 'kpis', 'quality', 'complementarios', 'alerts', 'worker',
@@ -52,9 +52,9 @@ function transformar(id, src) {
   // import * as NS from '...'
   out = out.replace(/import\s+\*\s+as\s+(\w+)\s+from\s+['"]([^'"]+)['"];?/g,
     (_, ns, imp) => `const ${ns} = __require(${JSON.stringify(idDesdeRuta(imp, id))});`);
-  // import { a, b } from '...'  (admite multilínea)
+  // import { a, b, x as y } from '...'  (admite multilínea; "as" => ":")
   out = out.replace(/import\s*\{([\s\S]*?)\}\s*from\s+['"]([^'"]+)['"];?/g,
-    (_, names, imp) => `const {${names}} = __require(${JSON.stringify(idDesdeRuta(imp, id))});`);
+    (_, names, imp) => `const {${names.replace(/\s+as\s+/g, ': ')}} = __require(${JSON.stringify(idDesdeRuta(imp, id))});`);
   // import dinámico (exports.js): await import('./vendor/xlsx.mjs')
   out = out.replace(/import\(\s*['"]([^'"]+)['"]\s*\)/g,
     (_, imp) => `Promise.resolve(__require(${JSON.stringify(idDesdeRuta(imp, id))}))`);
@@ -105,7 +105,12 @@ const idb = read('node_modules/idb-keyval/dist/umd.js');
 
 // Worker: xlsx (global) + bundle + arranque.
 const workerSrc = `${xlsx}\n${construirBundle(WORKER, 'self')}\n__require('worker');`;
-const workerB64 = Buffer.from(workerSrc, 'utf8').toString('base64');
+// Se incrusta como texto legible (sin base64) en un <script> de tipo inerte.
+// El contenido de un elemento <script> solo termina en la secuencia "</script",
+// así que verificamos que no aparezca en el código.
+if (/<\/script/i.test(workerSrc)) {
+  throw new Error('El código del worker contiene "</script"; habría que escaparlo.');
+}
 
 // Main: bundle, con la creación del worker reemplazada por un Blob.
 let mainSrc = construirBundle(MAIN, 'window');
@@ -136,12 +141,14 @@ ${css}
 </head>
 <body>
 ${bodyInner}
+<!-- Código del Web Worker en texto legible (tipo inerte: el navegador no lo
+     ejecuta aquí; se lee con textContent y se crea el worker desde un Blob). -->
+<script type="text/js-worker" id="worker-src">
+${workerSrc}
+</script>
 <script>
-// Fuente del Web Worker (base64, se decodifica a UTF-8 y se crea desde un Blob).
-var __WORKER_B64 = "${workerB64}";
 function __crearWorker(){
-  var bytes = Uint8Array.from(atob(__WORKER_B64), function(c){ return c.charCodeAt(0); });
-  var src = new TextDecoder('utf-8').decode(bytes);
+  var src = document.getElementById('worker-src').textContent;
   var blob = new Blob([src], { type: 'application/javascript' });
   return new Worker(URL.createObjectURL(blob));
 }

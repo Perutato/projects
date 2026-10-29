@@ -262,6 +262,18 @@ h3 { font-size: 15px; margin: 22px 0 8px; }
 .chip-total { background: #eef2f7; color: var(--txt); }
 .chip-alta { background: var(--error-bg); color: var(--error); }
 .chip-media { background: #fff3d6; color: var(--ambar); }
+.chip-ok { background: var(--ok-bg); color: var(--ok); }
+
+/* ---- Parámetros ---- */
+.params-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.param-card { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); padding: 14px 16px; box-shadow: var(--sombra); }
+.param-card h3 { margin: 0 0 10px; font-size: 14px; }
+.param-card label { display: block; font-size: 13px; color: var(--txt); margin-bottom: 8px; }
+.param-card input[type="number"] { width: 72px; padding: 4px 6px; border: 1px solid var(--borde); border-radius: 6px; margin-left: 4px; }
+.param-card input[type="text"], .param-card textarea, .param-card select { width: 100%; padding: 5px 7px; border: 1px solid var(--borde); border-radius: 6px; margin-top: 3px; font-family: inherit; font-size: 13px; }
+.param-card textarea { resize: vertical; }
+.param-card label.chk { display: flex; align-items: center; gap: 6px; }
+.param-card code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
 
 /* ---- Impresión / PDF ---- */
 @media print {

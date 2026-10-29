@@ -110,8 +110,8 @@ el `estadoDia`, el `tipoMarcacion`, los cruces del modelo y los controles CT.
 
 - [x] **Fase 1 — Parsers + modelo + calidad de datos**
 - [x] **Fase 2 — KPIs y dashboards (Tienda / Logística) con ECharts**
-- [x] **Fase 3 — Complementarios + alertas por persona** ← *actual*
-- [ ] Fase 4 — Histórico de cortes + exportaciones + parámetros
+- [x] **Fase 3 — Complementarios + alertas por persona**
+- [x] **Fase 4 — Histórico de cortes + exportaciones + parámetros** ← *actual*
 
 ### Fase 2 (detalle)
 
@@ -139,6 +139,23 @@ el `estadoDia`, el `tipoMarcacion`, los cruces del modelo y los controles CT.
   aplica los umbrales (escalables por granularidad), asigna el nivel (Alta/
   Media) y los motivos, y calcula la reincidencia (semanas consecutivas con
   alerta). Exporta a CSV o a Excel con **una hoja por jefe directo**.
+
+### Fase 4 (detalle)
+
+- **Histórico de cortes:** cada carga de datos nuevos guarda un "corte" (foto de
+  las incidencias: faltas, sin marcación, marcación incompleta y trabajó sin
+  turno, en Tienda y Logística). Al comparar el corte actual con el anterior se
+  clasifican en **nuevas / pendientes / regularizadas**, con % de regularización,
+  gráfico de evolución y tablas por sucursal y por jefe. También se puede guardar
+  un corte manualmente y eliminar cortes.
+- **Parámetros:** pantalla para editar todos los parámetros (umbrales de alerta y
+  criterios del nivel Alta, tolerancia de refrigerio, semáforo de malla, lista de
+  sindicatos, texto de campañero, mapeo de grupo→dashboard y horas→jornada,
+  exclusión de días fuera del empleo, definición de fuga y escala de umbrales por
+  granularidad). Se guardan en IndexedDB y, al guardar, se **recalcula** todo
+  (la Dotación se vuelve a derivar con los nuevos parámetros).
+- **Exportaciones** a Excel/CSV en todas las tablas (dashboards, complementarios,
+  alertas).
 
 ## Notas de negocio
 
