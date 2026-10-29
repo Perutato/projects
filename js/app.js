@@ -21,11 +21,13 @@ import {
 } from './storage.js';
 import { fmtMiles, fmtPct } from './config.js';
 import { crearDashboards } from './dashboards.js';
+import { crearPaneles } from './panels.js';
 import { resizeTodos } from './charts.js';
 
 let cfg = null;
 let worker = null;
 let dashboards = null;
+let paneles = null;
 let ultimaCalidad = null;
 const cola = [];
 let procesando = false;
@@ -54,6 +56,7 @@ async function init() {
   };
 
   dashboards = crearDashboards({ callWorker, getCfg: () => cfg });
+  paneles = crearPaneles({ callWorker, getCfg: () => cfg });
 
   configurarNavegacion();
   configurarCarga();
@@ -99,6 +102,8 @@ function mostrarVista(vista) {
   if (vista === 'calidad') renderCalidad();
   if (vista === 'tienda') dashboards.render('Tienda');
   if (vista === 'logistica') dashboards.render('Logística');
+  if (vista === 'complementarios') paneles.renderComplementarios();
+  if (vista === 'alertas') paneles.renderAlertas();
 }
 
 // ---- Carga ------------------------------------------------------------------
@@ -187,6 +192,7 @@ async function recalcular() {
     });
     ultimaCalidad = { controles: res.controles, listados: res.listados, totalFilas: res.totalFilas };
     dashboards.setOpciones(res.filtros);
+    paneles.setOpciones(res.filtros);
     mostrarProgreso(false);
     renderCalidad();
     toast('Datos recalculados.', 'ok');

@@ -26,6 +26,51 @@ export async function exportarExcel(nombreArchivo, columnas, filas, titulos) {
   XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
 }
 
+/**
+ * Exporta varias hojas en un mismo libro .xlsx.
+ * @param {string} nombreArchivo
+ * @param {Array<{nombre:string, columnas:string[], titulos?:string[], filas:object[]}>} hojas
+ */
+export async function exportarExcelHojas(nombreArchivo, hojas) {
+  const XLSX = await xlsx();
+  const wb = XLSX.utils.book_new();
+  const usados = new Set();
+  for (const h of hojas) {
+    const head = h.titulos || h.columnas;
+    const aoa = [head, ...h.filas.map((f) => h.columnas.map((c) => f[c] ?? ''))];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // Nombre de hoja válido (<=31 chars, sin caracteres prohibidos, único).
+    let nom = String(h.nombre || 'Hoja').replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || 'Hoja';
+    let i = 2;
+    const baseNom = nom.slice(0, 28);
+    while (usados.has(nom)) nom = `${baseNom} ${i++}`;
+    usados.add(nom);
+    XLSX.utils.book_append_sheet(wb, ws, nom);
+  }
+  XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+}
+
+/**
+ * Exporta filas agrupadas por una clave, con una hoja por grupo.
+ * @param {string} nombreArchivo
+ * @param {string} campoGrupo  clave de agrupación (p.ej. 'jefe')
+ * @param {string[]} columnas
+ * @param {object[]} filas
+ * @param {string[]} [titulos]
+ */
+export async function exportarExcelPorGrupo(nombreArchivo, campoGrupo, columnas, filas, titulos) {
+  const grupos = new Map();
+  for (const f of filas) {
+    const k = f[campoGrupo] || '(sin dato)';
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(f);
+  }
+  const hojas = [...grupos.entries()]
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([k, arr]) => ({ nombre: k, columnas, titulos, filas: arr }));
+  await exportarExcelHojas(nombreArchivo, hojas);
+}
+
 /** Exporta a CSV (separador coma, con BOM para Excel es-PE). */
 export function exportarCSV(nombreArchivo, columnas, filas, titulos) {
   const head = titulos || columnas;

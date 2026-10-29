@@ -249,6 +249,20 @@ h3 { font-size: 15px; margin: 22px 0 8px; }
   .grafico.g-ancho { grid-column: auto; }
 }
 
+/* ===========================================================================
+   Complementarios y Alertas (Fase 3)
+   =========================================================================== */
+.tabla-scroll { overflow-x: auto; margin-bottom: 8px; }
+.tabla-scroll .tabla { min-width: 640px; }
+.tabla-alertas th, .tabla-alertas td { white-space: nowrap; }
+.tabla-alertas td:last-child { white-space: normal; min-width: 240px; color: var(--txt-suave); font-size: 12px; }
+
+.chips { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.chip { padding: 5px 12px; border-radius: 999px; font-weight: 700; font-size: 13px; }
+.chip-total { background: #eef2f7; color: var(--txt); }
+.chip-alta { background: var(--error-bg); color: var(--error); }
+.chip-media { background: #fff3d6; color: var(--ambar); }
+
 /* ---- Impresión / PDF ---- */
 @media print {
   .sidebar, .acciones, .dropzone, .progreso, .toast { display: none !important; }

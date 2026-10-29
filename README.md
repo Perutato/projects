@@ -91,8 +91,8 @@ el `estadoDia`, el `tipoMarcacion`, los cruces del modelo y los controles CT.
 ## Plan por fases
 
 - [x] **Fase 1 — Parsers + modelo + calidad de datos**
-- [x] **Fase 2 — KPIs y dashboards (Tienda / Logística) con ECharts** ← *actual*
-- [ ] Fase 3 — Complementarios + alertas por persona
+- [x] **Fase 2 — KPIs y dashboards (Tienda / Logística) con ECharts**
+- [x] **Fase 3 — Complementarios + alertas por persona** ← *actual*
 - [ ] Fase 4 — Histórico de cortes + exportaciones + parámetros
 
 ### Fase 2 (detalle)
@@ -108,6 +108,19 @@ el `estadoDia`, el `tipoMarcacion`, los cruces del modelo y los controles CT.
   detalle por persona al hacer clic en una sucursal.
 - El Web Worker mantiene el modelo en memoria y calcula cada dashboard bajo
   demanda, así las >200,000 filas nunca cruzan al hilo de la interfaz.
+
+### Fase 3 (detalle)
+
+- **Complementarios:** cortes por segmento (campañero, sindicalizado, jornada,
+  modelo de días, calendario, top 15 jefes por tardanzas) con las 12 métricas;
+  puntos de marcación (E1/S1/E2/S2 con días, % sobre presentes, minutos,
+  promedio y máximo); distribución por rango de atraso; categorías de permiso;
+  y feriados trabajados por calendario. Exporta todo a Excel (una hoja por
+  corte).
+- **Alertas por persona:** agrega las incidencias por persona en el período,
+  aplica los umbrales (escalables por granularidad), asigna el nivel (Alta/
+  Media) y los motivos, y calcula la reincidencia (semanas consecutivas con
+  alerta). Exporta a CSV o a Excel con **una hoja por jefe directo**.
 
 ## Notas de negocio
 

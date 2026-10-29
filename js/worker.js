@@ -13,6 +13,8 @@ import { esTiempoExtra, parseTiempoExtra } from './parsers/tiempoExtra.js';
 import { construirModelo } from './model.js';
 import { calcularCalidad } from './quality.js';
 import { construirDashboard, filtrar } from './kpis.js';
+import { construirComplementarios } from './complementarios.js';
+import { construirAlertas } from './alerts.js';
 import { DEFAULT_CONFIG } from './config.js';
 
 // Modelo en memoria (persiste entre pedidos mientras viva el worker).
@@ -82,6 +84,10 @@ async function manejar(msg) {
       return recalcular(msg);
     case 'dashboard':
       return construirDashboard(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG);
+    case 'complementarios':
+      return construirComplementarios(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG);
+    case 'alertas':
+      return construirAlertas(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG);
     case 'detalleSucursal':
       return detalleSucursal(msg);
     default:
