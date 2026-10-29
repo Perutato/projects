@@ -9,7 +9,7 @@
 // Todo es 100% local. No se envía nada a internet.
 // =============================================================================
 
-import { get, set, del, keys } from 'https://cdn.jsdelivr.net/npm/idb-keyval@6.2.1/+esm';
+import { get, set, del, keys } from './vendor/idb-keyval.js';
 import { DEFAULT_CONFIG } from './config.js';
 
 const K = {

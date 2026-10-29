@@ -149,11 +149,12 @@ export function parseFechaTE(v) {
   }
   if (!tieneTexto(v)) return res;
   const s = String(v).trim();
-  const m = s.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  const m = s.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
   if (m) {
     const dd = parseInt(m[1], 10);
     const mm = parseInt(m[2], 10);
-    const yyyy = parseInt(m[3], 10);
+    let yyyy = parseInt(m[3], 10);
+    if (yyyy < 100) yyyy += 2000; // año de 2 dígitos => 20xx
     const d = new Date(yyyy, mm - 1, dd);
     if (!Number.isNaN(d.getTime())) {
       res.date = d;
