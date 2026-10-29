@@ -426,6 +426,21 @@ h3 { font-size: 15px; margin: 22px 0 8px; }
   .grafico-body { height: 300px; }
 }
 
+/* Matriz de reconciliación (celdas multilínea) */
+.tabla-recon td { vertical-align: top; padding: 10px 12px; }
+.tabla-recon td b { font-size: 13px; font-variant-numeric: tabular-nums; }
+.tabla-recon td small { display: block; color: var(--txt-suave); font-size: 11px; font-weight: 400; margin-top: 1px; }
+.rc-suc-nombre { font-weight: 600; }
+.tag { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 999px; font-weight: 600; margin-top: 4px; }
+.tag-amber { background: #fff3d6; color: var(--ambar); }
+.mini-badge { display: inline-block; margin-left: 6px; font-size: 11px; padding: 1px 7px; border-radius: 999px; font-weight: 700; }
+.badge-ok { background: var(--ok-bg); color: var(--ok); }
+.badge-amber { background: #fff3d6; color: var(--ambar); }
+.badge-rojo { background: var(--error-bg); color: var(--error); }
+.rc-total { background: #eef3f8; }
+.rc-total td { border-top: 2px solid #c8d4e0; }
+.tabla-recon .cel-ok, .tabla-recon .cel-amber, .tabla-recon .cel-rojo { border-radius: 0; }
+
 /* ---- Impresión / PDF ---- */
 @media print {
   .sidebar, .acciones, .dropzone, .progreso, .toast { display: none !important; }

@@ -133,6 +133,7 @@ export function crearDashboards({ callWorker, getCfg }) {
     pintarCards(dashboard, cont, data);
     pintarGraficos(dashboard, cont, data);
     pintarTabla(dashboard, cont, data);
+    pintarTopColaboradores(cont, data);
   }
 
   // ---- Esqueleto HTML ------------------------------------------------------
@@ -211,6 +212,12 @@ export function crearDashboards({ callWorker, getCfg }) {
           <span class="nota">Clic en una fila para ver el detalle por persona.</span>
         </div>
         <div data-tabla-suc></div>
+      </section>
+
+      <section class="bloque">
+        <h2 class="bloque-titulo"><span class="sec-num">F</span> Top 10 colaboradores por fuga de tiempo</h2>
+        <p class="chart-sub" style="margin:-8px 0 12px 38px">Detalle individual de colaboradores con mayor impacto en tardanzas y salidas anticipadas.</p>
+        <div data-top-colab></div>
       </section>
       <div class="modal" data-modal hidden></div>`;
   }
@@ -572,44 +579,85 @@ export function crearDashboards({ callWorker, getCfg }) {
 
   // ---- Tabla por sucursal --------------------------------------------------
   let ordenTabla = { campo: 'personas', dir: -1 };
+  // Matriz de reconciliación: una fila por sucursal con celdas multilínea.
   function pintarTabla(dashboard, cont, data) {
     const host = cont.querySelector('[data-tabla-suc]');
     const buscar = (cont.querySelector('[data-buscar-suc]').value || '').toLowerCase();
-    let filas = data.porSucursal.filter((s) => s.sucursal.toLowerCase().includes(buscar));
-    const { campo, dir } = ordenTabla;
-    filas = [...filas].sort((a, b) => {
-      const va = a[campo], vb = b[campo];
-      if (typeof va === 'string') return va.localeCompare(vb) * dir;
-      return (va - vb) * dir;
-    });
-    const th = COLS_SUC.map(
-      (c) => `<th data-ord="${c.key}" class="${c.tipo !== 'txt' ? 'num' : ''} ${campo === c.key ? 'ordenado' : ''}">${c.label}${campo === c.key ? icon(dir === -1 ? 'down' : 'up', 'ico-xs') : ''}</th>`
-    ).join('');
-    const tr = filas
-      .map(
-        (s) => `<tr data-suc="${esc(s.sucursal)}">${COLS_SUC.map((c) => {
-          const clase = [c.tipo !== 'txt' ? 'num' : '', celColor(c.key, s[c.key])].filter(Boolean).join(' ');
-          return `<td class="${clase}">${c.tipo === 'txt' ? esc(s[c.key]) : formato(s[c.key], c.tipo)}</td>`;
-        }).join('')}</tr>`
-      )
-      .join('');
-    host.innerHTML = `<div class="tabla-suc-wrap"><table class="tabla tabla-suc"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
-    host.querySelectorAll('th[data-ord]').forEach((h) =>
-      h.addEventListener('click', () => {
-        const k = h.dataset.ord;
-        ordenTabla = { campo: k, dir: ordenTabla.campo === k ? -ordenTabla.dir : (k === 'sucursal' ? 1 : -1) };
-        pintarTabla(dashboard, cont, data);
-      })
-    );
+    const filas = [...data.porSucursal]
+      .filter((s) => s.sucursal.toLowerCase().includes(buscar))
+      .sort((a, b) => b.fugaH - a.fugaH);
+
+    const cls = (v, a, b, inv) => {
+      if (typeof v !== 'number') return '';
+      if (inv) return v <= a ? 'cel-ok' : v <= b ? 'cel-amber' : 'cel-rojo';
+      return v >= a ? 'cel-ok' : v >= b ? 'cel-amber' : 'cel-rojo';
+    };
+    const badgeDesv = (h, pct) => {
+      const c = pct <= -20 ? 'badge-rojo' : pct < 0 ? 'badge-amber' : 'badge-ok';
+      return `<span class="mini-badge ${c}">${fmtPct(pct)}</span>`;
+    };
+    const filaTR = (s) => `
+      <tr data-suc="${esc(s.sucursal)}">
+        <td class="rc-suc">
+          <div class="rc-suc-nombre">${esc(s.sucursal)}</div>
+          ${s.personas < 10 ? '<span class="tag tag-amber">Dotación pequeña</span>' : ''}
+        </td>
+        <td class="num"><b>${fmtMiles(s.personas)}</b></td>
+        <td class="num ${cls(s.pctAsistencia, 95, 90)}"><b>${fmtPct(s.pctAsistencia)}</b><small>${fmtMiles(s.sumPresente)} / ${fmtMiles(s.sumDiaEsperado)} d</small></td>
+        <td class="num"><b>${fmtMiles(s.diasNoPlan)} d</b><small>${fmtMiles(s.trabajadoresNoPlan)} pers. afectadas</small></td>
+        <td class="num"><b>${fmtHoras(s.fugaH)} h</b><small>${fmtHoras(s.tardanzaH)} tard. + ${fmtHoras(s.salidaAntH)} sal.</small><small>Prom: ${fmtDec1(s.fiscalizables ? s.fugaH / s.fiscalizables : 0)} h/fisc.</small></td>
+        <td class="num"><b>${fmtHoras(s.hheeEjecH)} h ejec.</b><small>${fmtHoras(s.hheeAutH)} aprob. · ${fmtHoras(s.hheeReconH)} cump.</small></td>
+        <td class="num"><b>${fmtHoras(s.desviacionHHEEH)} h</b>${badgeDesv(s.desviacionHHEEH, s.pctDesviacionHHEE)}</td>
+      </tr>`;
+
+    const k = data.kpis;
+    const totalTR = `
+      <tr class="rc-total">
+        <td><b>TOTAL GENERAL</b><small>${fmtMiles(filas.length)} sucursales</small></td>
+        <td class="num"><b>${fmtMiles(k.personas)}</b></td>
+        <td class="num"><b>${fmtPct(k.pctAsistencia)}</b></td>
+        <td class="num"><b>${fmtMiles(k.diasNoPlan)} d</b><small>${fmtMiles(k.trabajadoresNoPlan)} pers.</small></td>
+        <td class="num"><b>${fmtHoras(k.fugaH)} h</b><small>${fmtHoras(k.tardanzaH)} + ${fmtHoras(k.salidaAntH)}</small></td>
+        <td class="num"><b>${fmtHoras(k.hheeEjecH)} h</b><small>${fmtHoras(k.hheeAutH)} aprob.</small></td>
+        <td class="num"><b>${fmtHoras(k.desviacionHHEEH)} h</b>${badgeDesv(k.desviacionHHEEH, k.pctDesviacionHHEE)}</td>
+      </tr>`;
+
+    host.innerHTML = `<div class="tabla-suc-wrap"><table class="tabla tabla-suc tabla-recon">
+      <thead><tr>
+        <th>Sucursal</th><th class="num">Dotación</th><th class="num">Asistencia</th>
+        <th class="num">Planificación</th><th class="num">Fuga de tiempo</th>
+        <th class="num">Horas extra</th><th class="num">Desviación HHEE</th>
+      </tr></thead>
+      <tbody>${filas.map(filaTR).join('')}${totalTR}</tbody></table></div>`;
+
     host.querySelectorAll('tr[data-suc]').forEach((row) =>
       row.addEventListener('click', () => abrirDetalle(dashboard, cont, row.dataset.suc))
     );
-    // buscador
     const inputBuscar = cont.querySelector('[data-buscar-suc]');
     if (!inputBuscar._cableado) {
       inputBuscar._cableado = true;
       inputBuscar.addEventListener('input', () => pintarTabla(dashboard, cont, data));
     }
+  }
+
+  // ---- Top 10 colaboradores por fuga --------------------------------------
+  function pintarTopColaboradores(cont, data) {
+    const host = cont.querySelector('[data-top-colab]');
+    if (!host) return;
+    const filas = data.topColaboradores || [];
+    if (!filas.length) { host.innerHTML = '<p class="vacio">Sin datos de fuga en el período.</p>'; return; }
+    const tr = filas.map((p, i) => `
+      <tr>
+        <td class="num">${i + 1}</td>
+        <td>${esc(p.keyId)}</td><td>${esc(p.nombre)}</td><td>${esc(p.sucursal)}</td><td>${esc(p.jefe)}</td>
+        <td class="num">${fmtMiles(p.tardanzas)}</td>
+        <td class="num">${fmtHoras(p.tardanzaH)} h</td>
+        <td class="num">${fmtHoras(p.salidaH)} h</td>
+        <td class="num ${p.fugaH >= 2 ? 'cel-rojo' : p.fugaH >= 1 ? 'cel-amber' : ''}"><b>${fmtHoras(p.fugaH)} h</b></td>
+      </tr>`).join('');
+    host.innerHTML = `<div class="tabla-scroll"><table class="tabla">
+      <thead><tr><th class="num">#</th><th>KeyID</th><th>Nombre</th><th>Sucursal</th><th>Jefe</th><th class="num">Tardanzas</th><th class="num">H. tardanza</th><th class="num">H. salida ant.</th><th class="num">Fuga (h)</th></tr></thead>
+      <tbody>${tr}</tbody></table></div>`;
   }
 
   // ---- Detalle por persona (modal) ----------------------------------------

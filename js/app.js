@@ -20,9 +20,11 @@ import {
   limpiarTodo,
   setConfig,
   getCortes,
+  setCortes,
   guardarCorte,
   eliminarCorte,
 } from './storage.js';
+import { exportarExcelHojas } from './exports.js';
 import { fmtMiles, fmtPct, fmtDec1, DEFAULT_CONFIG } from './config.js';
 import { crearDashboards } from './dashboards.js';
 import { crearPaneles } from './panels.js';
@@ -312,6 +314,10 @@ async function renderHistorico() {
   cont.innerHTML = `
     <header class="vista-head"><h1>Histórico de cortes</h1>
       <div class="acciones">
+        <button class="btn btn-sec" data-exp-excel ${cortes.length ? '' : 'disabled'}>${icon('download')}<span>Exportar Excel</span></button>
+        <button class="btn btn-sec" data-respaldar ${cortes.length ? '' : 'disabled'}>${icon('save')}<span>Respaldar (.json)</span></button>
+        <button class="btn btn-sec" data-restaurar-btn>${icon('upload')}<span>Restaurar (.json)</span></button>
+        <input type="file" accept=".json" data-restaurar-file hidden />
         <button class="btn" data-guardar>${icon('save')}<span>Guardar corte actual</span></button>
       </div>
     </header>
@@ -323,6 +329,17 @@ async function renderHistorico() {
     toast('Corte guardado.', 'ok');
     renderHistorico();
   });
+  // Exportar / respaldar / restaurar el histórico.
+  const bExcel = cont.querySelector('[data-exp-excel]');
+  if (bExcel) bExcel.addEventListener('click', () => exportarHistorico(cortes));
+  const bResp = cont.querySelector('[data-respaldar]');
+  if (bResp) bResp.addEventListener('click', () => respaldarHistorico(cortes));
+  const bRest = cont.querySelector('[data-restaurar-btn]');
+  const fRest = cont.querySelector('[data-restaurar-file]');
+  if (bRest && fRest) {
+    bRest.addEventListener('click', () => fRest.click());
+    fRest.addEventListener('change', () => restaurarHistorico(fRest.files[0]));
+  }
 
   const cuerpo = cont.querySelector('[data-cuerpo]');
   if (!cortes.length) { cuerpo.innerHTML = '<p class="vacio">Aún no hay cortes. Carga datos o pulsa "Guardar corte actual".</p>'; return; }
@@ -373,6 +390,63 @@ async function renderHistorico() {
     await eliminarCorte(b.dataset.corte);
     renderHistorico();
   }));
+}
+
+// Exporta el histórico a Excel: resumen por corte + comparación del último.
+function exportarHistorico(cortes) {
+  if (!cortes.length) return;
+  const serie = evolucionCortes(cortes);
+  const resumen = cortes.map((c, i) => ({
+    fecha: new Date(c.fecha).toLocaleString('es-PE'),
+    tipo: c.auto ? 'auto' : 'manual',
+    actuales: serie[i].actuales,
+    nuevas: serie[i].nuevas,
+    pendientes: serie[i].actuales - serie[i].nuevas,
+    regularizadas: serie[i].regularizadas,
+    pctRegularizacion: +serie[i].pctRegularizacion.toFixed(1),
+  }));
+  const actual = cortes[cortes.length - 1];
+  const anterior = cortes.length >= 2 ? cortes[cortes.length - 2] : null;
+  const cmp = compararCortes(actual, anterior);
+  const hojas = [
+    { nombre: 'Cortes', columnas: ['fecha', 'tipo', 'actuales', 'nuevas', 'pendientes', 'regularizadas', 'pctRegularizacion'], titulos: ['Fecha', 'Tipo', 'Actuales', 'Nuevas', 'Pendientes', 'Regularizadas', '% Regularización'], filas: resumen },
+    { nombre: 'Por sucursal', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Sucursal', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porSucursal },
+    { nombre: 'Por jefe', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Jefe', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porJefe },
+  ];
+  exportarExcelHojas(`Historico_${new Date().toISOString().slice(0, 10)}`, hojas);
+}
+
+// Respalda el histórico completo a un archivo .json (para mover de equipo).
+function respaldarHistorico(cortes) {
+  const blob = new Blob([JSON.stringify({ version: 1, exportado: new Date().toISOString(), cortes }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `historico_cortes_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Restaura el histórico desde un archivo .json (fusiona por id de corte).
+async function restaurarHistorico(file) {
+  if (!file) return;
+  try {
+    const texto = await file.text();
+    const data = JSON.parse(texto);
+    const importados = Array.isArray(data) ? data : data.cortes;
+    if (!Array.isArray(importados)) throw new Error('Formato no reconocido.');
+    const actuales = await getCortes();
+    const porId = new Map(actuales.map((c) => [c.id, c]));
+    for (const c of importados) if (c && c.id && Array.isArray(c.incidencias)) porId.set(c.id, c);
+    const fusion = [...porId.values()].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+    await setCortes(fusion);
+    toast(`Histórico restaurado: ${fmtMiles(importados.length)} corte(s) importado(s).`, 'ok');
+    renderHistorico();
+  } catch (err) {
+    toast('No se pudo restaurar: ' + err.message, 'error');
+  }
 }
 
 // ---- Parámetros -------------------------------------------------------------

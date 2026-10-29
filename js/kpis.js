@@ -301,6 +301,24 @@ export function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
     tendencia: serieTemporal(base, filtros.granularidad || 'dia', cfg),
   };
 
+  // Top 10 colaboradores por fuga de tiempo.
+  const porPersona = new Map();
+  for (const f of base) {
+    let p = porPersona.get(f.keyId);
+    if (!p) {
+      p = { keyId: f.keyId, nombre: f.nombre, sucursal: f.sucursal, jefe: f.jefe, cargo: f.cargoOficial, tardanzas: 0, minTardanza: 0, minSalida: 0, fugaMin: 0 };
+      porPersona.set(f.keyId, p);
+    }
+    p.tardanzas += f.tardanza;
+    p.minTardanza += f.atrasoE1;
+    p.minSalida += f.adelantoS2;
+    p.fugaMin += f.fugaMin;
+  }
+  const topColaboradores = [...porPersona.values()]
+    .sort((a, b) => b.fugaMin - a.fugaMin)
+    .slice(0, 10)
+    .map((p) => ({ ...p, fugaH: p.fugaMin / 60, tardanzaH: p.minTardanza / 60, salidaH: p.minSalida / 60 }));
+
   // Diagnóstico ejecutivo: tres prioridades del período.
   const peorNoPlan = [...porSuc].filter((s) => s.diasNoPlan > 0).sort((a, b) => b.diasNoPlan - a.diasNoPlan)[0] || null;
   const peorFuga = [...porSuc].filter((s) => s.fugaH > 0).sort((a, b) => b.fugaH - a.fugaH)[0] || null;
@@ -318,6 +336,7 @@ export function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
     top5: { peorAsistencia: top5PeorAsistencia, tardanzas: top5Tardanzas, noPlan: top5NoPlan },
     graficos,
     diagnostico,
+    topColaboradores,
     nFilas: base.length,
   };
 }

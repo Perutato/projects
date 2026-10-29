@@ -433,6 +433,21 @@ h3 { font-size: 15px; margin: 22px 0 8px; }
   .grafico-body { height: 300px; }
 }
 
+/* Matriz de reconciliación (celdas multilínea) */
+.tabla-recon td { vertical-align: top; padding: 10px 12px; }
+.tabla-recon td b { font-size: 13px; font-variant-numeric: tabular-nums; }
+.tabla-recon td small { display: block; color: var(--txt-suave); font-size: 11px; font-weight: 400; margin-top: 1px; }
+.rc-suc-nombre { font-weight: 600; }
+.tag { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 999px; font-weight: 600; margin-top: 4px; }
+.tag-amber { background: #fff3d6; color: var(--ambar); }
+.mini-badge { display: inline-block; margin-left: 6px; font-size: 11px; padding: 1px 7px; border-radius: 999px; font-weight: 700; }
+.badge-ok { background: var(--ok-bg); color: var(--ok); }
+.badge-amber { background: #fff3d6; color: var(--ambar); }
+.badge-rojo { background: var(--error-bg); color: var(--error); }
+.rc-total { background: #eef3f8; }
+.rc-total td { border-top: 2px solid #c8d4e0; }
+.tabla-recon .cel-ok, .tabla-recon .cel-amber, .tabla-recon .cel-rojo { border-radius: 0; }
+
 /* ---- Impresión / PDF ---- */
 @media print {
   .sidebar, .acciones, .dropzone, .progreso, .toast { display: none !important; }
@@ -2254,6 +2269,24 @@ function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
     tendencia: serieTemporal(base, filtros.granularidad || 'dia', cfg),
   };
 
+  // Top 10 colaboradores por fuga de tiempo.
+  const porPersona = new Map();
+  for (const f of base) {
+    let p = porPersona.get(f.keyId);
+    if (!p) {
+      p = { keyId: f.keyId, nombre: f.nombre, sucursal: f.sucursal, jefe: f.jefe, cargo: f.cargoOficial, tardanzas: 0, minTardanza: 0, minSalida: 0, fugaMin: 0 };
+      porPersona.set(f.keyId, p);
+    }
+    p.tardanzas += f.tardanza;
+    p.minTardanza += f.atrasoE1;
+    p.minSalida += f.adelantoS2;
+    p.fugaMin += f.fugaMin;
+  }
+  const topColaboradores = [...porPersona.values()]
+    .sort((a, b) => b.fugaMin - a.fugaMin)
+    .slice(0, 10)
+    .map((p) => ({ ...p, fugaH: p.fugaMin / 60, tardanzaH: p.minTardanza / 60, salidaH: p.minSalida / 60 }));
+
   // Diagnóstico ejecutivo: tres prioridades del período.
   const peorNoPlan = [...porSuc].filter((s) => s.diasNoPlan > 0).sort((a, b) => b.diasNoPlan - a.diasNoPlan)[0] || null;
   const peorFuga = [...porSuc].filter((s) => s.fugaH > 0).sort((a, b) => b.fugaH - a.fugaH)[0] || null;
@@ -2271,6 +2304,7 @@ function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
     top5: { peorAsistencia: top5PeorAsistencia, tardanzas: top5Tardanzas, noPlan: top5NoPlan },
     graficos,
     diagnostico,
+    topColaboradores,
     nFilas: base.length,
   };
 }
@@ -3995,6 +4029,7 @@ function crearDashboards({ callWorker, getCfg }) {
     pintarCards(dashboard, cont, data);
     pintarGraficos(dashboard, cont, data);
     pintarTabla(dashboard, cont, data);
+    pintarTopColaboradores(cont, data);
   }
 
   // ---- Esqueleto HTML ------------------------------------------------------
@@ -4073,6 +4108,12 @@ function crearDashboards({ callWorker, getCfg }) {
           <span class="nota">Clic en una fila para ver el detalle por persona.</span>
         </div>
         <div data-tabla-suc></div>
+      </section>
+
+      <section class="bloque">
+        <h2 class="bloque-titulo"><span class="sec-num">F</span> Top 10 colaboradores por fuga de tiempo</h2>
+        <p class="chart-sub" style="margin:-8px 0 12px 38px">Detalle individual de colaboradores con mayor impacto en tardanzas y salidas anticipadas.</p>
+        <div data-top-colab></div>
       </section>
       <div class="modal" data-modal hidden></div>`;
   }
@@ -4434,44 +4475,85 @@ function crearDashboards({ callWorker, getCfg }) {
 
   // ---- Tabla por sucursal --------------------------------------------------
   let ordenTabla = { campo: 'personas', dir: -1 };
+  // Matriz de reconciliación: una fila por sucursal con celdas multilínea.
   function pintarTabla(dashboard, cont, data) {
     const host = cont.querySelector('[data-tabla-suc]');
     const buscar = (cont.querySelector('[data-buscar-suc]').value || '').toLowerCase();
-    let filas = data.porSucursal.filter((s) => s.sucursal.toLowerCase().includes(buscar));
-    const { campo, dir } = ordenTabla;
-    filas = [...filas].sort((a, b) => {
-      const va = a[campo], vb = b[campo];
-      if (typeof va === 'string') return va.localeCompare(vb) * dir;
-      return (va - vb) * dir;
-    });
-    const th = COLS_SUC.map(
-      (c) => `<th data-ord="${c.key}" class="${c.tipo !== 'txt' ? 'num' : ''} ${campo === c.key ? 'ordenado' : ''}">${c.label}${campo === c.key ? icon(dir === -1 ? 'down' : 'up', 'ico-xs') : ''}</th>`
-    ).join('');
-    const tr = filas
-      .map(
-        (s) => `<tr data-suc="${esc(s.sucursal)}">${COLS_SUC.map((c) => {
-          const clase = [c.tipo !== 'txt' ? 'num' : '', celColor(c.key, s[c.key])].filter(Boolean).join(' ');
-          return `<td class="${clase}">${c.tipo === 'txt' ? esc(s[c.key]) : formato(s[c.key], c.tipo)}</td>`;
-        }).join('')}</tr>`
-      )
-      .join('');
-    host.innerHTML = `<div class="tabla-suc-wrap"><table class="tabla tabla-suc"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
-    host.querySelectorAll('th[data-ord]').forEach((h) =>
-      h.addEventListener('click', () => {
-        const k = h.dataset.ord;
-        ordenTabla = { campo: k, dir: ordenTabla.campo === k ? -ordenTabla.dir : (k === 'sucursal' ? 1 : -1) };
-        pintarTabla(dashboard, cont, data);
-      })
-    );
+    const filas = [...data.porSucursal]
+      .filter((s) => s.sucursal.toLowerCase().includes(buscar))
+      .sort((a, b) => b.fugaH - a.fugaH);
+
+    const cls = (v, a, b, inv) => {
+      if (typeof v !== 'number') return '';
+      if (inv) return v <= a ? 'cel-ok' : v <= b ? 'cel-amber' : 'cel-rojo';
+      return v >= a ? 'cel-ok' : v >= b ? 'cel-amber' : 'cel-rojo';
+    };
+    const badgeDesv = (h, pct) => {
+      const c = pct <= -20 ? 'badge-rojo' : pct < 0 ? 'badge-amber' : 'badge-ok';
+      return `<span class="mini-badge ${c}">${fmtPct(pct)}</span>`;
+    };
+    const filaTR = (s) => `
+      <tr data-suc="${esc(s.sucursal)}">
+        <td class="rc-suc">
+          <div class="rc-suc-nombre">${esc(s.sucursal)}</div>
+          ${s.personas < 10 ? '<span class="tag tag-amber">Dotación pequeña</span>' : ''}
+        </td>
+        <td class="num"><b>${fmtMiles(s.personas)}</b></td>
+        <td class="num ${cls(s.pctAsistencia, 95, 90)}"><b>${fmtPct(s.pctAsistencia)}</b><small>${fmtMiles(s.sumPresente)} / ${fmtMiles(s.sumDiaEsperado)} d</small></td>
+        <td class="num"><b>${fmtMiles(s.diasNoPlan)} d</b><small>${fmtMiles(s.trabajadoresNoPlan)} pers. afectadas</small></td>
+        <td class="num"><b>${fmtHoras(s.fugaH)} h</b><small>${fmtHoras(s.tardanzaH)} tard. + ${fmtHoras(s.salidaAntH)} sal.</small><small>Prom: ${fmtDec1(s.fiscalizables ? s.fugaH / s.fiscalizables : 0)} h/fisc.</small></td>
+        <td class="num"><b>${fmtHoras(s.hheeEjecH)} h ejec.</b><small>${fmtHoras(s.hheeAutH)} aprob. · ${fmtHoras(s.hheeReconH)} cump.</small></td>
+        <td class="num"><b>${fmtHoras(s.desviacionHHEEH)} h</b>${badgeDesv(s.desviacionHHEEH, s.pctDesviacionHHEE)}</td>
+      </tr>`;
+
+    const k = data.kpis;
+    const totalTR = `
+      <tr class="rc-total">
+        <td><b>TOTAL GENERAL</b><small>${fmtMiles(filas.length)} sucursales</small></td>
+        <td class="num"><b>${fmtMiles(k.personas)}</b></td>
+        <td class="num"><b>${fmtPct(k.pctAsistencia)}</b></td>
+        <td class="num"><b>${fmtMiles(k.diasNoPlan)} d</b><small>${fmtMiles(k.trabajadoresNoPlan)} pers.</small></td>
+        <td class="num"><b>${fmtHoras(k.fugaH)} h</b><small>${fmtHoras(k.tardanzaH)} + ${fmtHoras(k.salidaAntH)}</small></td>
+        <td class="num"><b>${fmtHoras(k.hheeEjecH)} h</b><small>${fmtHoras(k.hheeAutH)} aprob.</small></td>
+        <td class="num"><b>${fmtHoras(k.desviacionHHEEH)} h</b>${badgeDesv(k.desviacionHHEEH, k.pctDesviacionHHEE)}</td>
+      </tr>`;
+
+    host.innerHTML = `<div class="tabla-suc-wrap"><table class="tabla tabla-suc tabla-recon">
+      <thead><tr>
+        <th>Sucursal</th><th class="num">Dotación</th><th class="num">Asistencia</th>
+        <th class="num">Planificación</th><th class="num">Fuga de tiempo</th>
+        <th class="num">Horas extra</th><th class="num">Desviación HHEE</th>
+      </tr></thead>
+      <tbody>${filas.map(filaTR).join('')}${totalTR}</tbody></table></div>`;
+
     host.querySelectorAll('tr[data-suc]').forEach((row) =>
       row.addEventListener('click', () => abrirDetalle(dashboard, cont, row.dataset.suc))
     );
-    // buscador
     const inputBuscar = cont.querySelector('[data-buscar-suc]');
     if (!inputBuscar._cableado) {
       inputBuscar._cableado = true;
       inputBuscar.addEventListener('input', () => pintarTabla(dashboard, cont, data));
     }
+  }
+
+  // ---- Top 10 colaboradores por fuga --------------------------------------
+  function pintarTopColaboradores(cont, data) {
+    const host = cont.querySelector('[data-top-colab]');
+    if (!host) return;
+    const filas = data.topColaboradores || [];
+    if (!filas.length) { host.innerHTML = '<p class="vacio">Sin datos de fuga en el período.</p>'; return; }
+    const tr = filas.map((p, i) => `
+      <tr>
+        <td class="num">${i + 1}</td>
+        <td>${esc(p.keyId)}</td><td>${esc(p.nombre)}</td><td>${esc(p.sucursal)}</td><td>${esc(p.jefe)}</td>
+        <td class="num">${fmtMiles(p.tardanzas)}</td>
+        <td class="num">${fmtHoras(p.tardanzaH)} h</td>
+        <td class="num">${fmtHoras(p.salidaH)} h</td>
+        <td class="num ${p.fugaH >= 2 ? 'cel-rojo' : p.fugaH >= 1 ? 'cel-amber' : ''}"><b>${fmtHoras(p.fugaH)} h</b></td>
+      </tr>`).join('');
+    host.innerHTML = `<div class="tabla-scroll"><table class="tabla">
+      <thead><tr><th class="num">#</th><th>KeyID</th><th>Nombre</th><th>Sucursal</th><th>Jefe</th><th class="num">Tardanzas</th><th class="num">H. tardanza</th><th class="num">H. salida ant.</th><th class="num">Fuga (h)</th></tr></thead>
+      <tbody>${tr}</tbody></table></div>`;
   }
 
   // ---- Detalle por persona (modal) ----------------------------------------
@@ -4886,9 +4968,11 @@ const {
   limpiarTodo,
   setConfig,
   getCortes,
+  setCortes,
   guardarCorte,
   eliminarCorte,
 } = __require("storage");
+const { exportarExcelHojas } = __require("exports");
 const { fmtMiles, fmtPct, fmtDec1, DEFAULT_CONFIG } = __require("config");
 const { crearDashboards } = __require("dashboards");
 const { crearPaneles } = __require("panels");
@@ -5178,6 +5262,10 @@ async function renderHistorico() {
   cont.innerHTML = `
     <header class="vista-head"><h1>Histórico de cortes</h1>
       <div class="acciones">
+        <button class="btn btn-sec" data-exp-excel ${cortes.length ? '' : 'disabled'}>${icon('download')}<span>Exportar Excel</span></button>
+        <button class="btn btn-sec" data-respaldar ${cortes.length ? '' : 'disabled'}>${icon('save')}<span>Respaldar (.json)</span></button>
+        <button class="btn btn-sec" data-restaurar-btn>${icon('upload')}<span>Restaurar (.json)</span></button>
+        <input type="file" accept=".json" data-restaurar-file hidden />
         <button class="btn" data-guardar>${icon('save')}<span>Guardar corte actual</span></button>
       </div>
     </header>
@@ -5189,6 +5277,17 @@ async function renderHistorico() {
     toast('Corte guardado.', 'ok');
     renderHistorico();
   });
+  // Exportar / respaldar / restaurar el histórico.
+  const bExcel = cont.querySelector('[data-exp-excel]');
+  if (bExcel) bExcel.addEventListener('click', () => exportarHistorico(cortes));
+  const bResp = cont.querySelector('[data-respaldar]');
+  if (bResp) bResp.addEventListener('click', () => respaldarHistorico(cortes));
+  const bRest = cont.querySelector('[data-restaurar-btn]');
+  const fRest = cont.querySelector('[data-restaurar-file]');
+  if (bRest && fRest) {
+    bRest.addEventListener('click', () => fRest.click());
+    fRest.addEventListener('change', () => restaurarHistorico(fRest.files[0]));
+  }
 
   const cuerpo = cont.querySelector('[data-cuerpo]');
   if (!cortes.length) { cuerpo.innerHTML = '<p class="vacio">Aún no hay cortes. Carga datos o pulsa "Guardar corte actual".</p>'; return; }
@@ -5239,6 +5338,63 @@ async function renderHistorico() {
     await eliminarCorte(b.dataset.corte);
     renderHistorico();
   }));
+}
+
+// Exporta el histórico a Excel: resumen por corte + comparación del último.
+function exportarHistorico(cortes) {
+  if (!cortes.length) return;
+  const serie = evolucionCortes(cortes);
+  const resumen = cortes.map((c, i) => ({
+    fecha: new Date(c.fecha).toLocaleString('es-PE'),
+    tipo: c.auto ? 'auto' : 'manual',
+    actuales: serie[i].actuales,
+    nuevas: serie[i].nuevas,
+    pendientes: serie[i].actuales - serie[i].nuevas,
+    regularizadas: serie[i].regularizadas,
+    pctRegularizacion: +serie[i].pctRegularizacion.toFixed(1),
+  }));
+  const actual = cortes[cortes.length - 1];
+  const anterior = cortes.length >= 2 ? cortes[cortes.length - 2] : null;
+  const cmp = compararCortes(actual, anterior);
+  const hojas = [
+    { nombre: 'Cortes', columnas: ['fecha', 'tipo', 'actuales', 'nuevas', 'pendientes', 'regularizadas', 'pctRegularizacion'], titulos: ['Fecha', 'Tipo', 'Actuales', 'Nuevas', 'Pendientes', 'Regularizadas', '% Regularización'], filas: resumen },
+    { nombre: 'Por sucursal', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Sucursal', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porSucursal },
+    { nombre: 'Por jefe', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Jefe', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porJefe },
+  ];
+  exportarExcelHojas(`Historico_${new Date().toISOString().slice(0, 10)}`, hojas);
+}
+
+// Respalda el histórico completo a un archivo .json (para mover de equipo).
+function respaldarHistorico(cortes) {
+  const blob = new Blob([JSON.stringify({ version: 1, exportado: new Date().toISOString(), cortes }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `historico_cortes_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Restaura el histórico desde un archivo .json (fusiona por id de corte).
+async function restaurarHistorico(file) {
+  if (!file) return;
+  try {
+    const texto = await file.text();
+    const data = JSON.parse(texto);
+    const importados = Array.isArray(data) ? data : data.cortes;
+    if (!Array.isArray(importados)) throw new Error('Formato no reconocido.');
+    const actuales = await getCortes();
+    const porId = new Map(actuales.map((c) => [c.id, c]));
+    for (const c of importados) if (c && c.id && Array.isArray(c.incidencias)) porId.set(c.id, c);
+    const fusion = [...porId.values()].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+    await setCortes(fusion);
+    toast(`Histórico restaurado: ${fmtMiles(importados.length)} corte(s) importado(s).`, 'ok');
+    renderHistorico();
+  } catch (err) {
+    toast('No se pudo restaurar: ' + err.message, 'error');
+  }
 }
 
 // ---- Parámetros -------------------------------------------------------------
