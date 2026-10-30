@@ -236,3 +236,9 @@ test('parseDotacion deriva dashboard, campañero, sindicato y fiscalización', (
   assert.equal(p.ambito, 'Tienda');
   assert.equal(p.validacionHoras, 'OK'); // 48 vs 48
 });
+
+test('fechas imposibles (31-02) se rechazan en vez de rodar a marzo', () => {
+  assert.equal(parseFechaAsistencia('Mar 31-02-2026').ok, false);
+  assert.equal(parseFechaTE('31/02/2026').ok, false);
+  assert.equal(parseFechaAsistencia('Sáb 29-02-2028').ok, true); // 2028 es bisiesto
+});

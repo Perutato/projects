@@ -90,7 +90,7 @@ test('periodoAnterior calcula la ventana equivalente', () => {
   assert.equal(p.fechaDesde, '20260901');
 });
 
-test('construirDashboard arma KPIs, top5 y gráficos', () => {
+test('construirDashboard arma KPIs, gráficos, malla de calor y anatomía', () => {
   const filas = [
     fila({ sucursal: 'A' }),
     fila({ keyId: '2', keyDia: '2|20260901', sucursal: 'A', tardanza: 1, atrasoE1: 5, fugaMin: 5 }),
@@ -99,8 +99,61 @@ test('construirDashboard arma KPIs, top5 y gráficos', () => {
   const d = construirDashboard(filas, { dashboard: 'Tienda', granularidad: 'dia' });
   assert.equal(d.kpis.personas, 3);
   assert.equal(d.porSucursal.length, 2);
-  assert.ok(d.graficos.gr01.length >= 1);
-  assert.ok(Array.isArray(d.graficos.gr05));
-  // La sucursal B tiene peor asistencia (0%).
-  assert.equal(d.top5.peorAsistencia[0].sucursal, 'B');
+  // El gráfico de asistencia viene de peor a mejor: B (0%) primero.
+  assert.equal(d.graficos.asistencia[0].sucursal, 'B');
+  assert.ok(Array.isArray(d.graficos.tendencia));
+  assert.equal(d.graficos.tendencia[0].clave, '20260901');
+  // Malla de calor: 2 sucursales × 1 día.
+  assert.equal(d.graficos.malla_calor.sucursales.length, 2);
+  assert.equal(d.graficos.malla_calor.periodos.length, 1);
+  // Anatomía: los 4 puntos de marcación.
+  assert.deepEqual(d.anatomia.global.puntos.map((p) => p.id), ['E1', 'S1', 'E2', 'S2']);
+  assert.equal(d.anatomia.global.puntos[0].dias, 1);
+});
+
+// --- Auditoría: HHEE desde Tiempo Extra (incluye días sin fila de asistencia) ---
+import { construirDrill } from '../js/kpis.js';
+
+function te(over = {}) {
+  return Object.assign({
+    keyId: '1', keyDia: '1|20260901', nombre: 'A', sucursal: 'Suc 1', dashboard: 'Tienda', jefe: 'J1',
+    cargoOficial: 'C1', campanero: 'No', sindicalizado: 'No', jornada: 'Full Time', modeloDias: '5X2',
+    fiscalizacion: 'Fiscalizado', calendario: 'PERU', yyyymmdd: '20260901', semana: '2026-W36', mes: '2026-09',
+    turno: 'Turno', teMin: 120, heaMin: 60, finalesMin: 90, noReconocidasMin: 30, conAsistencia: true,
+  }, over);
+}
+
+test('HHEE del dashboard incluyen días de TE sin fila de asistencia', () => {
+  const filas = [fila({})];
+  const teFilas = [te({}), te({ keyDia: '1|20260906', yyyymmdd: '20260906', conAsistencia: false })];
+  const d = construirDashboard(filas, { dashboard: 'Tienda' }, undefined, teFilas);
+  assert.equal(d.kpis.hheeEjecH, 4); // 2 h + 2 h (el domingo sin asistencia también cuenta)
+  assert.equal(d.kpis.hheeAutH, 2);
+  assert.equal(d.kpis.desviacionHHEEH, -2);
+  assert.equal(d.porSucursal[0].hheeEjecH, 4);
+});
+
+test('construirDrill lista trabajadores de una barra con su detalle por día', () => {
+  const filas = [
+    fila({ tardanza: 1, atrasoE1: 7, fugaMin: 7 }),
+    fila({ keyDia: '1|20260902', yyyymmdd: '20260902', tardanza: 1, atrasoE1: 3, fugaMin: 3 }),
+    fila({ keyId: '2', keyDia: '2|20260901', nombre: 'B', sucursal: 'Suc 2' }),
+  ];
+  const r = construirDrill(filas, [], { dashboard: 'Tienda' }, { metrica: 'tardanzas', sucursal: 'Suc 1' });
+  assert.equal(r.personas.length, 1);
+  assert.equal(r.personas[0].keyId, '1');
+  assert.equal(r.personas[0].eventos, 2);
+  assert.equal(r.personas[0].minEvento, 10);
+  assert.equal(r.detalle.length, 2);
+  assert.equal(r.detalle[0].fecha, '01/09/2026');
+  // Sin sucursal: la persona B no tiene tardanzas, no aparece.
+  assert.equal(construirDrill(filas, [], { dashboard: 'Tienda' }, { metrica: 'tardanzas' }).personas.length, 1);
+});
+
+test('construirDrill de HHEE usa las filas de Tiempo Extra', () => {
+  const teFilas = [te({}), te({ keyId: '2', keyDia: '2|20260901', nombre: 'B', teMin: 0, heaMin: 0, finalesMin: 0, noReconocidasMin: 0 })];
+  const r = construirDrill([], teFilas, { dashboard: 'Tienda' }, { metrica: 'hhee' });
+  assert.equal(r.personas.length, 1);
+  assert.equal(r.personas[0].hheeEjecH, 2);
+  assert.equal(r.detalle[0].ejecutadasH, 2);
 });

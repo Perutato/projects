@@ -12,13 +12,13 @@ import { esAsistencia, parseAsistencia } from './parsers/asistencia.js';
 import { esTiempoExtra, parseTiempoExtra } from './parsers/tiempoExtra.js';
 import { construirModelo } from './model.js';
 import { calcularCalidad } from './quality.js';
-import { construirDashboard, filtrar } from './kpis.js';
+import { construirDashboard, construirDrill, filtrar } from './kpis.js';
 import { construirComplementarios } from './complementarios.js';
 import { construirAlertas } from './alerts.js';
 import { DEFAULT_CONFIG } from './config.js';
 
 // Modelo en memoria (persiste entre pedidos mientras viva el worker).
-let MODELO = { filas: [], teResumen: null, personas: [] };
+let MODELO = { filas: [], teFilas: [], teResumen: null, personas: [] };
 
 /**
  * Lee un ArrayBuffer a array-de-arrays de la primera hoja.
@@ -83,7 +83,9 @@ async function manejar(msg) {
     case 'recalcular':
       return recalcular(msg);
     case 'dashboard':
-      return construirDashboard(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG);
+      return construirDashboard(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG, MODELO.teFilas);
+    case 'drill':
+      return construirDrill(MODELO.filas, MODELO.teFilas, msg.filtros || {}, msg.sel || {}, msg.cfg || DEFAULT_CONFIG);
     case 'complementarios':
       return construirComplementarios(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG);
     case 'alertas':
@@ -111,11 +113,12 @@ function parseFile({ buffer, fileName, lote, cfg }) {
     payload.filas = personas.length;
     payload.rango = 'Foto actual';
   } else if (tipo === 'asistencia') {
-    const { registros, fechasInvalidas } = parseAsistencia(aoa);
+    const { registros, fechasInvalidas, ejemplosFechas } = parseAsistencia(aoa);
     for (const r of registros) r._lote = lote;
     payload.registros = registros;
     payload.filas = registros.length;
     payload.fechasInvalidas = fechasInvalidas;
+    payload.ejemplosFechas = ejemplosFechas;
     payload.rango = rangoFechas(registros);
   } else if (tipo === 'tiempoExtra') {
     const { registros, descartadasTotales } = parseTiempoExtra(aoa);
@@ -141,7 +144,7 @@ function recalcular({ personas, dotacionAoa, asistencia, tiempoExtra, cfg, meta 
     tiempoExtra: tiempoExtra || [],
     cfg: conf,
   });
-  MODELO = { filas: modelo.filas, teResumen: modelo.teResumen, personas: per };
+  MODELO = { filas: modelo.filas, teFilas: modelo.teFilas, teResumen: modelo.teResumen, personas: per };
 
   self.postMessage({ type: 'progress', fase: 'calidad' });
   const calidad = calcularCalidad({
@@ -149,7 +152,7 @@ function recalcular({ personas, dotacionAoa, asistencia, tiempoExtra, cfg, meta 
     personas: per,
     teResumen: modelo.teResumen,
     teDedup: modelo.teDedup,
-    meta: meta || {},
+    meta: { ...(meta || {}), teSinAsistencia: modelo.teFilas.filter((t) => !t.conAsistencia).length },
     cfg: conf,
   });
 
@@ -221,8 +224,10 @@ function opcionesFiltro(filas) {
     if (min === null || f.yyyymmdd < min) min = f.yyyymmdd;
     if (max === null || f.yyyymmdd > max) max = f.yyyymmdd;
   }
+  const sucDe = (dash) => [...new Set(fd.filter((f) => f.dashboard === dash).map((f) => f.sucursal))].sort();
   return {
     sucursales: uniq('sucursal'),
+    sucursalesPorDashboard: { Tienda: sucDe('Tienda'), 'Logística': sucDe('Logística') },
     jefes: uniq('jefe'),
     cargos: uniq('cargoOficial'),
     jornadas: uniq('jornada'),

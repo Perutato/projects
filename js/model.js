@@ -137,7 +137,7 @@ export function construirModelo({ personas, asistencia, tiempoExtra, cfg = DEFAU
       // llaves e identidad
       keyId: a.keyId,
       keyDia: a.keyDia,
-      nombre: a.nombre,
+      nombre: (dot && dot.nombre) || a.nombre,
       // dotación (vigente hoy)
       sucursal,
       grupoUbic,
@@ -169,6 +169,13 @@ export function construirModelo({ personas, asistencia, tiempoExtra, cfg = DEFAU
       mes,
       anio,
       categoriaPermiso: a.categoriaPermiso,
+      permiso: a.permiso || '',
+      inicioTurno: a.inicioTurno || '',
+      finTurno: a.finTurno || '',
+      refrigerioProgMin: a.refrigerioProgMin || 0,
+      primeraEntrada: a.primeraEntrada || '',
+      ultimaSalida: a.ultimaSalida || '',
+      patronMarcacion: a.patronMarcacion || '',
       tipoTurno: a.tipoTurno,
       estadoDia,
       tipoMarcacion: a.tipoMarcacion,
@@ -220,5 +227,36 @@ export function construirModelo({ personas, asistencia, tiempoExtra, cfg = DEFAU
     { teMin: 0, heaMin: 0, finalesMin: 0, noReconocidasMin: 0 }
   );
 
-  return { filas, dotacionMap, teDedup, teResumen };
+  const asisKeys = new Set(asisDedup.map((a) => a.keyDia));
+  const teFilas = teDedup.map((t) => {
+    const dot = dotacionMap.get(t.keyId) || null;
+    return {
+      keyId: t.keyId,
+      keyDia: t.keyDia,
+      nombre: dot ? dot.nombre : t.nombre,
+      sucursal: dot ? dot.sucursal : 'No está en Dotación',
+      dashboard: dot ? dot.dashboard : 'No está en Dotación',
+      jefe: dot ? dot.jefe : '',
+      cargoOficial: dot ? dot.cargo : '',
+      campanero: dot ? dot.campanero : '',
+      sindicalizado: dot ? dot.sindicalizado : '',
+      jornada: dot ? dot.jornada : '',
+      modeloDias: dot ? dot.modeloDias : '',
+      fiscalizacion: dot ? dot.fiscalizacion : 'Sin dato',
+      calendario: dot ? dot.calendario : '',
+      fecha: t.fecha,
+      yyyymmdd: t.yyyymmdd,
+      semana: t.fecha ? semanaISO(t.fecha) : '',
+      mes: t.fecha ? mesClave(t.fecha) : '',
+      turno: t.turno || '',
+      enDescanso: t.enDescanso || 0,
+      teMin: t.teMin || 0,
+      heaMin: t.heaMin || 0,
+      finalesMin: t.finalesMin || 0,
+      noReconocidasMin: t.noReconocidasMin || 0,
+      conAsistencia: asisKeys.has(t.keyDia),
+    };
+  });
+
+  return { filas, dotacionMap, teDedup, teResumen, teFilas };
 }

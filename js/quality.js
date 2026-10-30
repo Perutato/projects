@@ -213,6 +213,8 @@ export function calcularCalidad({ filas, personas, teResumen, teDedup, meta = {}
     dniLongitud,
     dniDuplicados,
     fechasInvalidas: meta.fechasInvalidas || 0,
+    ejemplosFechas: meta.ejemplosFechas || [],
+    teSinAsistencia: meta.teSinAsistencia || 0,
     sinHuella,
     horariosSinModelo,
     horasRevisar,

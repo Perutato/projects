@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { fmtMiles, fmtPct, fmtDec1 } from './config.js';
-import { exportarExcel, exportarCSV, exportarExcelHojas, exportarExcelPorGrupo } from './exports.js';
+import { exportarCSV, exportarExcelHojas, exportarExcelPorGrupo } from './exports.js';
 import { icon, help } from './icons.js';
 
 // Columnas de los cortes por segmento (las 12 métricas).
@@ -47,7 +47,7 @@ const COLS_ALERTA = [
 export function crearPaneles({ callWorker, getCfg }) {
   let opciones = null;
   const estComp = { dashboard: '', fechaDesde: null, fechaHasta: null };
-  const estAlerta = { dashboard: '', fechaDesde: null, fechaHasta: null, escala: 'mes' };
+  const estAlerta = { dashboard: '', fechaDesde: null, fechaHasta: null, escala: 'mes', escalaModo: 'auto' };
   let ultComp = null;
   let ultAlerta = null;
   let ordenAlerta = { campo: null, dir: -1 };
@@ -100,7 +100,7 @@ export function crearPaneles({ callWorker, getCfg }) {
     const cols = COLS_SEG.map((c) => (c.key === 'clave' ? { ...c, label: claveLbl } : c));
     const th = cols.map((c) => `<th class="${c.tipo !== 'txt' ? 'num' : ''}">${c.label}${help(c.tip)}</th>`).join('');
     const tr = filas.map((f) => `<tr>${cols.map((c) => `<td class="${c.tipo !== 'txt' ? 'num' : ''}">${fmtVal(f[c.key], c.tipo)}</td>`).join('')}</tr>`).join('');
-    return `<h2>${titulo}</h2><div class="tabla-scroll"><table class="tabla">${`<thead><tr>${th}</tr></thead>`}<tbody>${tr}</tbody></table></div>`;
+    return `<section class="panel"><h3>${titulo}</h3><div class="tabla-scroll"><table class="tabla"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div></section>`;
   }
 
   async function exportarComplementarios() {
@@ -140,7 +140,7 @@ export function crearPaneles({ callWorker, getCfg }) {
       </header>
       <div class="filtros" data-filtros></div>
       <div data-resumen></div>
-      <div class="tabla-herramientas"><span class="busqueda-wrap">${icon('search')}<input type="search" placeholder="Buscar persona / sucursal / jefe…" data-buscar class="input-busqueda" /></span></div>
+      <div class="herramientas"><label class="busqueda">${icon('search')}<input type="search" class="input" placeholder="Buscar persona, sucursal o jefe" aria-label="Buscar persona" data-buscar /></label></div>
       <div data-tabla><p class="vacio">Calculando…</p></div>`;
     cablearFiltrosSimples(cont, estAlerta, () => actualizarAlertas(cont), true);
     cont.querySelector('[data-exp-csv]').addEventListener('click', exportarAlertasCSV);
@@ -151,17 +151,18 @@ export function crearPaneles({ callWorker, getCfg }) {
   }
 
   async function actualizarAlertas(cont) {
+    if (estAlerta.escalaModo === 'auto') estAlerta.escala = escalaPorRango(estAlerta);
     const data = await callWorker('alertas', { filtros: estAlerta, cfg: getCfg() });
     ultAlerta = data;
     const res = cont.querySelector('[data-resumen]');
     const u = data.umbrales;
     res.innerHTML = `
-      <div class="chips">
-        <span class="chip chip-total">${fmtMiles(data.resumen.total)} con alerta</span>
-        <span class="chip chip-alta">${fmtMiles(data.resumen.altas)} Alta</span>
-        <span class="chip chip-media">${fmtMiles(data.resumen.medias)} Media</span>
+      <div class="cifras">
+        <div class="cifra-item"><span class="tile-lbl">Personas con alerta</span><span class="tile-val">${fmtMiles(data.resumen.total)}</span></div>
+        <div class="cifra-item"><span class="tile-lbl">Nivel alto</span><span class="tile-val">${fmtMiles(data.resumen.altas)}</span><span class="estado estado-crit">${icon('warning', 'ico-xs')}Alta</span></div>
+        <div class="cifra-item"><span class="tile-lbl">Nivel medio</span><span class="tile-val">${fmtMiles(data.resumen.medias)}</span><span class="estado estado-warn">${icon('warning', 'ico-xs')}Media</span></div>
       </div>
-      <p class="nota">Umbrales aplicados (escala ${data.escala}): faltas ≥ ${u.faltasInjustificadas}, sin marcación ≥ ${u.sinMarcacion}, marcación incompleta ≥ ${u.marcacionIncompleta}, tardanzas ≥ ${u.tardanzasE1}, trabajó en descanso ≥ ${u.trabajoEnDescanso}, sin turno ≥ ${u.trabajoSinTurno}, exceso refrigerio ≥ ${u.diasExcesoRefrigerio}.</p>`;
+      <p class="nota">Umbrales aplicados (escala ${ESCALA_LBL[data.escala] || data.escala}${estAlerta.escalaModo === 'auto' ? ', elegida según el rango de fechas' : ''}): faltas ≥ ${u.faltasInjustificadas}, sin marcación ≥ ${u.sinMarcacion}, marcación incompleta ≥ ${u.marcacionIncompleta}, tardanzas ≥ ${u.tardanzasE1}, trabajó en descanso ≥ ${u.trabajoEnDescanso}, sin turno ≥ ${u.trabajoSinTurno}, exceso refrigerio ≥ ${u.diasExcesoRefrigerio}.</p>`;
     pintarTablaAlertas(cont, (cont.querySelector('[data-buscar]').value || ''));
   }
 
@@ -176,21 +177,22 @@ export function crearPaneles({ callWorker, getCfg }) {
     }
     const host = cont.querySelector('[data-tabla]');
     if (!filas.length) { host.innerHTML = '<p class="vacio">No hay personas que superen los umbrales.</p>'; return; }
-    const th = COLS_ALERTA.map((c) => `<th data-ord="${c.key}" class="orden ${c.tipo === 'int' ? 'num' : ''} ${ordenAlerta.campo === c.key ? 'ordenado' : ''}">${c.label}${help(c.tip)}${ordenAlerta.campo === c.key ? icon(dirIco(ordenAlerta.dir), 'ico-xs') : ''}</th>`).join('');
+    const th = COLS_ALERTA.map((c) => `<th class="${c.tipo === 'int' ? 'num' : ''}"><button type="button" class="th-orden" data-ord="${c.key}">${c.label}${ordenAlerta.campo === c.key ? icon(dirIco(ordenAlerta.dir), 'ico-xs') : ''}</button>${help(c.tip)}</th>`).join('');
     const tr = filas.slice(0, 2000).map((a) => `<tr>${COLS_ALERTA.map((c) => celdaAlerta(a, c)).join('')}</tr>`).join('');
     host.innerHTML = `<div class="tabla-alertas-wrap"><table class="tabla tabla-alertas"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>${filas.length > 2000 ? `<p class="nota">Mostrando 2.000 de ${fmtMiles(filas.length)}.</p>` : ''}`;
-    host.querySelectorAll('th[data-ord]').forEach((h) => h.addEventListener('click', () => {
+    host.querySelectorAll('[data-ord]').forEach((h) => h.addEventListener('click', () => {
       const k = h.dataset.ord;
       ordenAlerta = { campo: k, dir: ordenAlerta.campo === k ? -ordenAlerta.dir : (COLS_ALERTA.find((c) => c.key === k).tipo === 'txt' ? 1 : -1) };
       pintarTablaAlertas(cont, filtroTxt);
+      host.querySelector(`[data-ord="${k}"]`).focus();
     }));
   }
   function dirIco(dir) { return dir === -1 ? 'down' : 'up'; }
 
   function celdaAlerta(a, c) {
     if (c.tipo === 'nivel') {
-      const clase = a.nivel === 'Alta' ? 'sem-rojo' : 'sem-amber';
-      return `<td><span class="sem ${clase}">${a.nivel}</span></td>`;
+      const clase = a.nivel === 'Alta' ? 'estado-crit' : 'estado-warn';
+      return `<td><span class="estado ${clase}">${icon('warning', 'ico-xs')}${a.nivel}</span></td>`;
     }
     if (c.tipo === 'int') return `<td class="num">${fmtMiles(a[c.key])}</td>`;
     return `<td>${esc(a[c.key])}</td>`;
@@ -212,40 +214,43 @@ export function crearPaneles({ callWorker, getCfg }) {
   // ---- Barra de filtros simple (compartida) --------------------------------
   function cablearFiltrosSimples(cont, est, onChange, conEscala = false) {
     const caja = cont.querySelector('[data-filtros]');
+    const preset = presetDe(est);
+    const seg = (v, lbl) => `<button type="button" data-rango="${v}" class="${preset === v ? 'activo' : ''}" aria-pressed="${preset === v}">${lbl}</button>`;
     caja.innerHTML = `
-      <div class="fila-filtros">
-        <div class="fgrupo"><label>Dashboard</label><select data-dash>
+      <div class="filtros-fila">
+        <label class="fgrupo"><span class="flbl">Dashboard</span><select data-dash>
           <option value="">Tienda + Logística</option>
           <option value="Tienda" ${est.dashboard === 'Tienda' ? 'selected' : ''}>Tienda</option>
           <option value="Logística" ${est.dashboard === 'Logística' ? 'selected' : ''}>Logística</option>
-        </select></div>
-        <div class="fgrupo"><label>Rango</label><div class="segment">
-          <button data-rango="dia">Último día</button>
-          <button data-rango="semana">Última semana</button>
-          <button data-rango="mes">Último mes</button>
-          <button data-rango="todo">Todo</button>
+        </select></label>
+        <div class="fgrupo"><span class="flbl">Período</span><div class="segment">
+          ${seg('dia', 'Último día')}${seg('semana', 'Última semana')}${seg('mes', 'Mes')}${seg('todo', 'Todo')}
         </div></div>
-        <div class="fgrupo"><label>Desde</label><input type="date" data-desde value="${isoDate(est.fechaDesde)}" /></div>
-        <div class="fgrupo"><label>Hasta</label><input type="date" data-hasta value="${isoDate(est.fechaHasta)}" /></div>
-        ${conEscala ? `<div class="fgrupo"><label>Escala de umbrales</label><select data-escala>
-          <option value="mes" ${est.escala === 'mes' ? 'selected' : ''}>Mes</option>
-          <option value="semana" ${est.escala === 'semana' ? 'selected' : ''}>Semana</option>
-          <option value="dia" ${est.escala === 'dia' ? 'selected' : ''}>Día</option>
-        </select></div>` : ''}
+        <label class="fgrupo"><span class="flbl">Desde</span><input type="date" data-desde value="${isoDate(est.fechaDesde)}" /></label>
+        <label class="fgrupo"><span class="flbl">Hasta</span><input type="date" data-hasta value="${isoDate(est.fechaHasta)}" /></label>
+        ${conEscala ? `<label class="fgrupo"><span class="flbl">Escala de umbrales${help('Los umbrales están pensados para un mes. Con un rango de un día o una semana se multiplican por el factor de Parámetros (Día 0,05 · Semana 0,25), con un mínimo de 1.')}</span><select data-escala>
+          <option value="auto" ${est.escalaModo === 'auto' ? 'selected' : ''}>Según el rango</option>
+          <option value="mes" ${est.escalaModo === 'mes' ? 'selected' : ''}>Mes</option>
+          <option value="semana" ${est.escalaModo === 'semana' ? 'selected' : ''}>Semana</option>
+          <option value="dia" ${est.escalaModo === 'dia' ? 'selected' : ''}>Día</option>
+        </select></label>` : ''}
       </div>`;
+    const repintar = () => { cablearFiltrosSimples(cont, est, onChange, conEscala); onChange(); };
     caja.querySelector('[data-dash]').addEventListener('change', (e) => { est.dashboard = e.target.value; onChange(); });
     const dDesde = caja.querySelector('[data-desde]');
     const dHasta = caja.querySelector('[data-hasta]');
-    const onFecha = () => { est.fechaDesde = dDesde.value ? dDesde.value.replace(/-/g, '') : null; est.fechaHasta = dHasta.value ? dHasta.value.replace(/-/g, '') : null; onChange(); };
+    const onFecha = () => { est.fechaDesde = dDesde.value ? dDesde.value.replace(/-/g, '') : null; est.fechaHasta = dHasta.value ? dHasta.value.replace(/-/g, '') : null; repintar(); };
     dDesde.addEventListener('change', onFecha);
     dHasta.addEventListener('change', onFecha);
     caja.querySelectorAll('[data-rango]').forEach((b) => b.addEventListener('click', () => {
       aplicarPreseleccion(est, b.dataset.rango);
-      dDesde.value = isoDate(est.fechaDesde);
-      dHasta.value = isoDate(est.fechaHasta);
-      onChange();
+      repintar();
     }));
-    if (conEscala) caja.querySelector('[data-escala]').addEventListener('change', (e) => { est.escala = e.target.value; onChange(); });
+    if (conEscala) caja.querySelector('[data-escala]').addEventListener('change', (e) => {
+      est.escalaModo = e.target.value;
+      if (est.escalaModo !== 'auto') est.escala = est.escalaModo;
+      onChange();
+    });
   }
 
   function aplicarPreseleccion(est, tipo) {
@@ -253,19 +258,39 @@ export function crearPaneles({ callWorker, getCfg }) {
     const min = opciones.fechaMin;
     if (!max) return;
     if (tipo === 'todo') { est.fechaDesde = null; est.fechaHasta = null; return; }
-    const d = new Date(+max.slice(0, 4), +max.slice(4, 6) - 1, +max.slice(6, 8));
-    let desde = d;
-    if (tipo === 'semana') desde = new Date(d.getTime() - 6 * 86400000);
-    else if (tipo === 'mes') desde = new Date(d.getTime() - 29 * 86400000);
-    const y = (x) => `${x.getFullYear()}${String(x.getMonth() + 1).padStart(2, '0')}${String(x.getDate()).padStart(2, '0')}`;
-    est.fechaDesde = y(desde) < min ? min : y(desde);
+    let desde = max;
+    if (tipo === 'semana') desde = ymd(new Date(fecha(max).getTime() - 6 * 86400000));
+    else if (tipo === 'mes') desde = max.slice(0, 6) + '01'; // mes calendario de la última fecha
+    est.fechaDesde = desde < min ? min : desde;
     est.fechaHasta = max;
+  }
+  function presetDe(est) {
+    const max = opciones.fechaMax;
+    if (!est.fechaDesde && !est.fechaHasta) return 'todo';
+    if (est.fechaHasta !== max) return '';
+    const min = opciones.fechaMin;
+    const piso = (x) => (x < min ? min : x);
+    if (est.fechaDesde === max) return 'dia';
+    if (est.fechaDesde === piso(ymd(new Date(fecha(max).getTime() - 6 * 86400000)))) return 'semana';
+    if (est.fechaDesde === piso(max.slice(0, 6) + '01')) return 'mes';
+    return '';
+  }
+  // Escala automática: 1 día → día; hasta 7 días → semana; más → mes.
+  function escalaPorRango(est) {
+    const a = est.fechaDesde || opciones.fechaMin;
+    const b = est.fechaHasta || opciones.fechaMax;
+    if (!a || !b) return 'mes';
+    const dias = Math.round((fecha(b) - fecha(a)) / 86400000) + 1;
+    return dias <= 1 ? 'dia' : dias <= 7 ? 'semana' : 'mes';
   }
 
   return { setOpciones, renderComplementarios, renderAlertas };
 }
 
 // --- Utilidades --------------------------------------------------------------
+const ESCALA_LBL = { dia: 'día', semana: 'semana', mes: 'mes' };
+function fecha(s) { return new Date(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)); }
+function ymd(x) { return `${x.getFullYear()}${String(x.getMonth() + 1).padStart(2, '0')}${String(x.getDate()).padStart(2, '0')}`; }
 function tablaGenerica(titulos, filas, tips) {
   const th = titulos.map((t, i) => `<th class="${i === 0 ? '' : 'num'}">${t}${tips && tips[i] ? help(tips[i]) : ''}</th>`).join('');
   const tr = filas.map((f) => `<tr>${f.map((v, i) => `<td class="${i === 0 ? '' : 'num'}">${esc(v)}</td>`).join('')}</tr>`).join('');

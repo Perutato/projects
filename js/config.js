@@ -66,9 +66,11 @@ export const DEFAULT_CONFIG = {
   // --- Escalado de umbrales según granularidad -------------------------------
   // Factor multiplicador sobre los umbrales base. Permite ajustar cuando el
   // análisis es de un solo día o una semana (en vez de un mes completo).
+  // Proporcional a un mes de ~22 días laborables: un día ≈ 1/22, una semana ≈ 5/22.
+  // (Los umbrales escalados nunca bajan de 1.)
   escalaUmbralPorGranularidad: {
-    dia: 1,
-    semana: 1,
+    dia: 0.05,
+    semana: 0.25,
     mes: 1,
   },
 
