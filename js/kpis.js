@@ -301,6 +301,23 @@ export function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
     tendencia: serieTemporal(base, filtros.granularidad || 'dia', cfg),
   };
 
+  // Puntos de marcación (E1/S1/E2/S2): días, % sobre presentes, min, prom, máx.
+  const puntoStats = (campo) => {
+    let dias = 0, total = 0, max = 0;
+    for (const f of base) {
+      const v = f[campo] || 0;
+      if (v > 0) { dias++; total += v; if (v > max) max = v; }
+    }
+    const pres = kpis.sumPresente;
+    return { dias, pctPresentes: pres ? (dias / pres) * 100 : 0, minTotales: total, promedio: dias ? total / dias : 0, maximo: max };
+  };
+  const puntos = [
+    { punto: 'E1 · Atraso de ingreso', ...puntoStats('atrasoE1') },
+    { punto: 'S1 · Salida anticipada a refrigerio', ...puntoStats('adelantoS1') },
+    { punto: 'E2 · Exceso de retorno de refrigerio', ...puntoStats('atrasoE2') },
+    { punto: 'S2 · Salida anticipada final', ...puntoStats('adelantoS2') },
+  ];
+
   // Top 10 colaboradores por fuga de tiempo.
   const porPersona = new Map();
   for (const f of base) {
@@ -337,6 +354,7 @@ export function construirDashboard(filas, filtros, cfg = DEFAULT_CONFIG) {
     graficos,
     diagnostico,
     topColaboradores,
+    puntos,
     nFilas: base.length,
   };
 }

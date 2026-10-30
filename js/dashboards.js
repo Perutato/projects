@@ -47,6 +47,7 @@ const CARDS = [
   { key: 'hheeReconH', label: 'HHEE reconocidas (h)', fmt: 'h', good: 'up', tip: 'Σ finales (reconocido/pagable) / 60.' },
   { key: 'hheeNoReconH', label: 'HHEE no reconocidas (h)', fmt: 'h', good: 'down', tip: 'Ejecutadas − reconocidas.' },
   { key: 'pctHHEERecon', label: '% HHEE reconocidas', fmt: 'pct', good: 'up', tip: 'Finales / ejecutadas.' },
+  { key: 'desviacionHHEEH', label: 'Desviación HHEE (h)', fmt: 'h', good: 'up', tip: 'Aprobadas − Ejecutadas. Negativo = sobre-ejecución (se trabajó más de lo aprobado).' },
 ];
 
 // Agrupación de los KPIs en secciones, para una lectura más rápida.
@@ -84,6 +85,17 @@ export function crearDashboards({ callWorker, getCfg }) {
   };
   const ultTabla = {}; // última tabla por sucursal (para exportar)
   const ultData = {}; // último dashboard completo (para exportar gráficos)
+  const tabActiva = { Tienda: 'resumen', 'Logística': 'resumen' };
+
+  // Pestañas por tipo de análisis.
+  const TABS = [
+    { id: 'resumen', lbl: 'Resumen', ico: 'calidad' },
+    { id: 'asistencia', lbl: 'Asistencia y malla', ico: 'complementarios' },
+    { id: 'marcacion', lbl: 'Marcación', ico: 'parametros' },
+    { id: 'fuga', lbl: 'Puntualidad y fuga', ico: 'historico' },
+    { id: 'hhee', lbl: 'Horas extra', ico: 'alertas' },
+    { id: 'reconciliacion', lbl: 'Reconciliación', ico: 'tienda' },
+  ];
 
   function filtrosPorDefecto(dashboard) {
     return {
@@ -116,8 +128,9 @@ export function crearDashboards({ callWorker, getCfg }) {
       return;
     }
     charts.limpiarGraficos();
-    cont.innerHTML = esqueleto(dashboard);
+    cont.innerHTML = esqueleto();
     cablearFiltros(dashboard, cont);
+    cablearTabs(dashboard, cont);
     await actualizar(dashboard, cont);
   }
 
@@ -128,12 +141,130 @@ export function crearDashboards({ callWorker, getCfg }) {
     ultTabla[dashboard] = data.porSucursal;
     ultData[dashboard] = data;
     pintarEncabezado(dashboard, cont, filtros, data);
-    pintarHero(dashboard, cont, data);
-    pintarDiagnostico(dashboard, cont, data);
-    pintarCards(dashboard, cont, data);
-    pintarGraficos(dashboard, cont, data);
-    pintarTabla(dashboard, cont, data);
-    pintarTopColaboradores(cont, data);
+    pintarAlerta(cont, data);
+    renderTab(dashboard, cont);
+  }
+
+  // Barra de pestañas y conmutación entre tipos de análisis.
+  function cablearTabs(dashboard, cont) {
+    cont.querySelector('[data-tabbar]').innerHTML = TABS.map((t) =>
+      `<button class="tab-btn ${tabActiva[dashboard] === t.id ? 'activa' : ''}" data-tab="${t.id}">${icon(t.ico)}<span>${t.lbl}</span></button>`
+    ).join('');
+    cont.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => {
+      tabActiva[dashboard] = b.dataset.tab;
+      cont.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('activa', x === b));
+      renderTab(dashboard, cont);
+    }));
+  }
+
+  // Renderiza el contenido de la pestaña activa (con sus gráficos y tablas).
+  function renderTab(dashboard, cont) {
+    const data = ultData[dashboard];
+    if (!data) return;
+    charts.limpiarGraficos();
+    const host = cont.querySelector('[data-tab-content]');
+    const tab = tabActiva[dashboard];
+    const cc = (num, titulo, sub, baseId, ancho) => chartCard(dashboard, num, titulo, sub, baseId, ancho);
+    let graficos = [];
+
+    if (tab === 'resumen') {
+      host.innerHTML = `
+        <div class="hero-kpis" data-hero></div>
+        <div class="diag-wrap" data-diag></div>
+        <div class="graficos">
+          ${cc('GR-01', '% Asistencia por sucursal', 'Top 15 por dotación', 'gr01', true)}
+          ${cc('GR-T', 'Tendencia del período', 'Tardanzas, fuga, no planificados y HHEE', 'grTend', true)}
+        </div>`;
+      pintarHero(dashboard, cont, data);
+      pintarDiagnostico(dashboard, cont, data);
+      graficos = ['gr01', 'grTend'];
+    } else if (tab === 'asistencia') {
+      host.innerHTML =
+        insightsBox('Asistencia y malla', insightsAsistencia(data)) +
+        kpiCards(['pctAsistencia', 'pctMalla', 'diasNoPlan', 'trabajadoresNoPlan', 'faltasInjust', 'diasSinMarcacion'], data, dashboard) +
+        `<div class="graficos">
+          ${cc('GR-01', '% Asistencia por sucursal', 'Top 15 por dotación', 'gr01', true)}
+          ${cc('02', 'Días no planificados por sucursal', 'Días laborados sin turno en la malla', 'gr02', false)}
+          ${cc('08', '% Cumplimiento de malla', 'Meta 95%', 'gr09', false)}
+          ${cc('03', 'Justificaciones por sucursal', 'Días con justificación registrada', 'gr03', false)}
+        </div>`;
+      graficos = ['gr01', 'gr02', 'gr09', 'gr03'];
+    } else if (tab === 'marcacion') {
+      host.innerHTML =
+        insightsBox('Marcación', insightsMarcacion(data)) +
+        kpiCards(['marcacionCompleta', 'marcacionIncompleta', 'diasSinMarcacion', 'marcasManuales', 'excesoRefrigerioDias', 'trabajoEnDescanso'], data, dashboard) +
+        `<div class="graficos">
+          ${cc('GR-06', 'Calidad de marcación', 'Distribución de días por tipo de marca', 'gr06', true)}
+        </div>`;
+      graficos = ['gr06'];
+    } else if (tab === 'fuga') {
+      host.innerHTML =
+        insightsBox('Puntualidad y fuga de tiempo', insightsFuga(data)) +
+        kpiCards(['tardanzasDias', 'minTardanza', 'personasTardanza', 'pctTardanza', 'salidasAntDias', 'fugaH', 'fugaHporFisc', 'diasJustificacion'], data, dashboard) +
+        `<div class="graficos">
+          ${cc('05', 'Fuga de tiempo: tardanzas y salidas', 'Horas perdidas por ingresos tarde y salidas antes', 'gr05', false)}
+          ${cc('04', 'Horas justificadas por sucursal', 'Atrasos de ingreso vs. adelantos de salida', 'gr04', false)}
+        </div>
+        <h3 class="sub-titulo">Puntos de marcación</h3>
+        <div data-puntos></div>
+        <h3 class="sub-titulo">Top 10 colaboradores por fuga</h3>
+        <div data-top-colab></div>`;
+      pintarPuntos(cont, data);
+      pintarTopColaboradores(cont, data);
+      graficos = ['gr05', 'gr04'];
+    } else if (tab === 'hhee') {
+      host.innerHTML =
+        insightsBox('Horas extra (HHEE)', insightsHHEE(data)) +
+        kpiCards(['hheeEjecH', 'hheeAutH', 'hheeReconH', 'hheeNoReconH', 'pctHHEERecon', 'desviacionHHEEH'], data, dashboard) +
+        `<div class="graficos">
+          ${cc('06', 'Ejecutadas vs. Aprobadas vs. Cumplidas', 'Volumen de horas por encima de la jornada', 'gr07', true)}
+          ${cc('07', 'Brecha: Aprobadas menos Ejecutadas', 'Sobre-ejecución (rojo) y sub-ejecución (azul)', 'gr08', false)}
+        </div>`;
+      graficos = ['gr07', 'gr08'];
+    } else if (tab === 'reconciliacion') {
+      host.innerHTML = `
+        <div class="recon-head">
+          <h3 class="sub-titulo">Resultado consolidado por sucursal</h3>
+          <div class="acciones">
+            <button class="btn btn-sec" data-accion="imprimir">${icon('printer')}<span>Imprimir / PDF</span></button>
+            <button class="btn btn-sec" data-accion="csv">${icon('download')}<span>CSV</span></button>
+            <button class="btn" data-accion="excel">${icon('download')}<span>Excel</span></button>
+          </div>
+        </div>
+        <div class="tabla-herramientas">
+          <span class="busqueda-wrap">${icon('search')}<input type="search" placeholder="Buscar sucursal…" data-buscar-suc class="input-busqueda" /></span>
+          <span class="nota">Clic en una fila para ver el detalle por persona.</span>
+        </div>
+        <div data-tabla-suc></div>`;
+      pintarTabla(dashboard, cont, data);
+      cont.querySelector('[data-accion="imprimir"]').addEventListener('click', () => window.print());
+      cont.querySelector('[data-accion="excel"]').addEventListener('click', () => exportarTabla(dashboard, 'excel'));
+      cont.querySelector('[data-accion="csv"]').addEventListener('click', () => exportarTabla(dashboard, 'csv'));
+    }
+
+    // Inicializa los gráficos de la pestaña y cablea sus botones de exportar.
+    const g = data.graficos;
+    const color = PALETA[dashboard];
+    graficos.forEach((b) => initChart(dashboard, b, g, color));
+    host.querySelectorAll('[data-export]').forEach((b) =>
+      b.addEventListener('click', () => exportarGrafico(dashboard, b.dataset.export))
+    );
+    setTimeout(() => charts.resizeTodos(), 30);
+  }
+
+  // Inicializa un gráfico por su id base.
+  function initChart(dashboard, base, g, color) {
+    const id = cid(dashboard, base);
+    if (base === 'gr01') charts.barrasHorizontales(id, '', g.gr01, color, '%');
+    else if (base === 'grTend') charts.tendencia(id, '', g.tendencia, color);
+    else if (base === 'gr06') charts.anillo(id, '', g.gr06);
+    else if (base === 'gr02') charts.barrasConBadge(id, '', g.gr02, color, ' d', 'pers.');
+    else if (base === 'gr03') charts.barrasHorizontales(id, '', g.gr03, color, '', 0);
+    else if (base === 'gr04') charts.barrasApiladas(id, '', g.gr04, 'Atrasos de ingreso', 'Adelantos de salida', '#c0392b', '#2f9e5e', ' h');
+    else if (base === 'gr05') charts.barrasApiladas(id, '', g.gr05, 'Tardanzas', 'Salidas anticipadas', '#1f4e78', '#5aa0dc', ' h');
+    else if (base === 'gr07') charts.barrasAgrupadas3(id, '', g.gr07, ['#1e8e4e', '#5aa0dc', '#b7791f']);
+    else if (base === 'gr08') charts.barrasDivergentes(id, '', g.gr08, ' h');
+    else if (base === 'gr09') charts.mallaPorSucursal(id, '', g.gr09, color, 95);
   }
 
   // ---- Esqueleto HTML ------------------------------------------------------
@@ -156,70 +287,96 @@ export function crearDashboards({ callWorker, getCfg }) {
       </section>`;
   }
 
-  function esqueleto(dashboard) {
-    const cc = (num, titulo, sub, baseId, ancho) => chartCard(dashboard, num, titulo, sub, baseId, ancho);
+  function esqueleto() {
     return `
       <div class="exec-banner" data-banner></div>
       <div class="filtros" data-filtros></div>
       <div class="alerta-dotacion" data-alerta></div>
-      <div class="hero-kpis" data-hero></div>
-      <div class="diag-wrap" data-diag></div>
-
-      <section class="bloque">
-        <h2 class="bloque-titulo"><span class="sec-num">A</span> Asistencia y marcación</h2>
-        <div class="graficos">
-          ${cc('GR-01', '% Asistencia por sucursal', 'Top 15 por dotación', 'gr01', true)}
-          ${cc('GR-T', 'Tendencia del período', 'Tardanzas, fuga, días no planificados y HHEE', 'grTend', true)}
-          ${cc('GR-06', 'Calidad de marcación', 'Distribución de días por tipo de marca', 'gr06', false)}
-        </div>
-      </section>
-
-      <section class="bloque">
-        <h2 class="bloque-titulo"><span class="sec-num">B</span> Planificación y disciplina</h2>
-        <div class="graficos">
-          ${cc('02', 'Días no planificados por tienda', 'Días laborados sin turno en la malla', 'gr02', false)}
-          ${cc('03', 'Justificaciones por tienda', 'Días con justificación registrada', 'gr03', false)}
-          ${cc('04', 'Horas justificadas por tienda', 'Atrasos de ingreso vs. adelantos de salida', 'gr04', false)}
-          ${cc('05', 'Fuga de tiempo: tardanzas y salidas', 'Horas perdidas por ingresos tarde y salidas antes', 'gr05', false)}
-        </div>
-      </section>
-
-      <section class="bloque">
-        <h2 class="bloque-titulo"><span class="sec-num">C</span> Horas extra (HHEE)</h2>
-        <div class="graficos">
-          ${cc('06', 'Ejecutadas vs. Aprobadas vs. Cumplidas', 'Volumen de horas por encima de la jornada', 'gr07', true)}
-          ${cc('07', 'Brecha: Aprobadas menos Ejecutadas', 'Sobre-ejecución (rojo) y sub-ejecución (azul)', 'gr08', false)}
-          ${cc('08', '% Cumplimiento de malla por sucursal', 'Meta 95%', 'gr09', false)}
-        </div>
-      </section>
-
-      <section class="bloque">
-        <h2 class="bloque-titulo"><span class="sec-num">D</span> Indicadores detallados</h2>
-        <div class="cards-wrap" data-cards></div>
-      </section>
-
-      <section class="bloque">
-        <div class="recon-head">
-          <h2 class="bloque-titulo"><span class="sec-num">E</span> Reconciliación · Resultado por sucursal</h2>
-          <div class="acciones">
-            <button class="btn btn-sec" data-accion="imprimir">${icon('printer')}<span>Imprimir / PDF</span></button>
-            <button class="btn btn-sec" data-accion="csv">${icon('download')}<span>CSV</span></button>
-            <button class="btn" data-accion="excel">${icon('download')}<span>Excel</span></button>
-          </div>
-        </div>
-        <div class="tabla-herramientas">
-          <span class="busqueda-wrap">${icon('search')}<input type="search" placeholder="Buscar sucursal…" data-buscar-suc class="input-busqueda" /></span>
-          <span class="nota">Clic en una fila para ver el detalle por persona.</span>
-        </div>
-        <div data-tabla-suc></div>
-      </section>
-
-      <section class="bloque">
-        <h2 class="bloque-titulo"><span class="sec-num">F</span> Top 10 colaboradores por fuga de tiempo</h2>
-        <p class="chart-sub" style="margin:-8px 0 12px 38px">Detalle individual de colaboradores con mayor impacto en tardanzas y salidas anticipadas.</p>
-        <div data-top-colab></div>
-      </section>
+      <div class="tabbar" data-tabbar></div>
+      <div class="tab-content" data-tab-content></div>
       <div class="modal" data-modal hidden></div>`;
+  }
+
+  // Tarjetas de KPI para una pestaña (lista de claves).
+  function kpiCards(keys, data, dashboard) {
+    const porKey = Object.fromEntries(CARDS.map((c) => [c.key, c]));
+    const color = PALETA[dashboard];
+    return `<div class="cards">${keys.map((k) => tarjeta(porKey[k], data, color)).join('')}</div>`;
+  }
+
+  // Caja de insights (hallazgos en texto) de una pestaña.
+  function insightsBox(titulo, items) {
+    if (!items || !items.length) return '';
+    return `<div class="insights">
+      <div class="insights-head">${icon('calidad')}<span>Lectura rápida · ${titulo}</span></div>
+      <ul>${items.map((t) => `<li>${t}</li>`).join('')}</ul>
+    </div>`;
+  }
+
+  // ---- Insights automáticos por dominio -----------------------------------
+  function insightsAsistencia(data) {
+    const k = data.kpis;
+    const bajo90 = data.porSucursal.filter((s) => s.sumDiaEsperado > 0 && s.pctAsistencia < 90).length;
+    const peor = data.diagnostico && data.diagnostico.planificacion;
+    const out = [
+      `Asistencia general de <b>${fmtPct(k.pctAsistencia)}</b>; <b>${fmtMiles(bajo90)}</b> sucursal(es) por debajo del 90%.`,
+      `Cumplimiento de malla <b>${fmtPct(k.pctMalla)}</b> (${k.semaforoMalla}): <b>${fmtMiles(k.diasNoPlan)}</b> día(s) no planificado(s) de <b>${fmtMiles(k.trabajadoresNoPlan)}</b> colaborador(es).`,
+      `<b>${fmtMiles(k.faltasInjust)}</b> falta(s) injustificada(s) y <b>${fmtMiles(k.diasSinMarcacion)}</b> día(s) con turno pero sin marcación.`,
+    ];
+    if (peor) out.push(`Mayor pendiente de planificación: <b>${esc(peor.sucursal)}</b> con ${fmtMiles(peor.dias)} día(s).`);
+    return out;
+  }
+  function insightsMarcacion(data) {
+    const k = data.kpis;
+    const totalMarc = k.marcacionCompleta + k.marcacionIncompleta;
+    const pctCompleta = totalMarc ? (k.marcacionCompleta / totalMarc) * 100 : 0;
+    return [
+      `<b>${fmtPct(pctCompleta)}</b> de los días con marcación están completos (${fmtMiles(k.marcacionCompleta)} de ${fmtMiles(totalMarc)}).`,
+      `<b>${fmtMiles(k.marcasManuales)}</b> marca(s) manual(es) registrada(s) (ingreso del supervisor, no del reloj).`,
+      `<b>${fmtMiles(k.excesoRefrigerioDias)}</b> día(s) con exceso de refrigerio sobre la tolerancia; <b>${fmtMiles(k.trabajoEnDescanso)}</b> día(s) trabajado(s) en descanso.`,
+    ];
+  }
+  function insightsFuga(data) {
+    const k = data.kpis;
+    const totalFuga = k.tardanzaH + k.salidaAntH;
+    const pctTard = totalFuga ? (k.tardanzaH / totalFuga) * 100 : 0;
+    const puntoCritico = [...(data.puntos || [])].sort((a, b) => b.dias - a.dias)[0];
+    const peor = data.diagnostico && data.diagnostico.fuga;
+    const out = [
+      `Fuga total de <b>${fmtHoras(k.fugaH)} h</b> (<b>${fmtDec1(k.fugaHporFisc)} h</b> por fiscalizable): tardanzas <b>${fmtPct(pctTard)}</b>, salidas anticipadas <b>${fmtPct(100 - pctTard)}</b>.`,
+      `% de tardanza sobre presentes: <b>${fmtPct(k.pctTardanza)}</b> (${fmtMiles(k.personasTardanza)} personas con al menos una tardanza).`,
+    ];
+    if (puntoCritico && puntoCritico.dias > 0) out.push(`El punto más crítico es <b>${esc(puntoCritico.punto)}</b>: ${fmtMiles(puntoCritico.dias)} día(s), promedio ${fmtDec1(puntoCritico.promedio)} min.`);
+    if (peor) out.push(`Sucursal con mayor fuga: <b>${esc(peor.sucursal)}</b> (${fmtHoras(peor.horas)} h).`);
+    return out;
+  }
+  function insightsHHEE(data) {
+    const k = data.kpis;
+    const noRecPct = k.hheeEjecH ? (k.hheeNoReconH / k.hheeEjecH) * 100 : 0;
+    const sobre = k.desviacionHHEEH < 0;
+    const peor = data.diagnostico && data.diagnostico.hhee;
+    const out = [
+      `Se ejecutaron <b>${fmtHoras(k.hheeEjecH)} h</b> y se aprobaron <b>${fmtHoras(k.hheeAutH)} h</b> → desviación <b>${fmtHoras(k.desviacionHHEEH)} h</b> (${sobre ? 'sobre-ejecución' : 'sub-ejecución'} del ${fmtPct(Math.abs(k.pctDesviacionHHEE))}).`,
+      `Solo <b>${fmtPct(k.pctHHEERecon)}</b> de las HHEE ejecutadas fueron reconocidas/pagadas; <b>${fmtHoras(k.hheeNoReconH)} h</b> (${fmtPct(noRecPct)}) quedaron sin reconocer.`,
+    ];
+    if (peor) out.push(`Mayor brecha en <b>${esc(peor.sucursal)}</b> (${fmtHoras(peor.desviacion)} h).`);
+    return out;
+  }
+
+  // Tabla de puntos de marcación (E1/S1/E2/S2).
+  function pintarPuntos(cont, data) {
+    const host = cont.querySelector('[data-puntos]');
+    if (!host) return;
+    const tr = (data.puntos || []).map((p) => `<tr>
+      <td>${esc(p.punto)}</td>
+      <td class="num">${fmtMiles(p.dias)}</td>
+      <td class="num">${fmtPct(p.pctPresentes)}</td>
+      <td class="num">${fmtMiles(p.minTotales)}</td>
+      <td class="num">${fmtDec1(p.promedio)}</td>
+      <td class="num">${fmtMiles(p.maximo)}</td></tr>`).join('');
+    host.innerHTML = `<div class="tabla-scroll"><table class="tabla">
+      <thead><tr><th>Punto</th><th class="num">Días</th><th class="num">% s/ presentes</th><th class="num">Min totales</th><th class="num">Promedio</th><th class="num">Máximo</th></tr></thead>
+      <tbody>${tr}</tbody></table></div>`;
   }
 
   // ---- Encabezado de período ----------------------------------------------
@@ -253,7 +410,6 @@ export function crearDashboards({ callWorker, getCfg }) {
 
   // ---- Hero KPIs (fila ejecutiva) -----------------------------------------
   function pintarHero(dashboard, cont, data) {
-    pintarAlerta(cont, data);
     const k = data.kpis;
     const promFuga = k.fiscalizables ? k.fugaH / k.fiscalizables : 0;
     const hero = [
@@ -360,11 +516,6 @@ export function crearDashboards({ callWorker, getCfg }) {
 
     // Multiselect de sucursal
     cablearMultiSucursal(dashboard, cajaFiltros, cont);
-
-    // Acciones (exportar / imprimir)
-    cont.querySelector('[data-accion="imprimir"]').addEventListener('click', () => window.print());
-    cont.querySelector('[data-accion="excel"]').addEventListener('click', () => exportarTabla(dashboard, 'excel'));
-    cont.querySelector('[data-accion="csv"]').addEventListener('click', () => exportarTabla(dashboard, 'csv'));
   }
 
   function plantillaFiltros(f) {
