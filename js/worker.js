@@ -12,7 +12,8 @@ import { esAsistencia, parseAsistencia } from './parsers/asistencia.js';
 import { esTiempoExtra, parseTiempoExtra } from './parsers/tiempoExtra.js';
 import { construirModelo } from './model.js';
 import { calcularCalidad } from './quality.js';
-import { construirDashboard, construirDrill, filtrar } from './kpis.js';
+import { construirDashboard, construirDrill, alcanceDrill, filtrar } from './kpis.js';
+import { registroIncidencias, fechasPorPersona, COLS_REGISTRO } from './registro.js';
 import { construirComplementarios } from './complementarios.js';
 import { construirAlertas } from './alerts.js';
 import { DEFAULT_CONFIG } from './config.js';
@@ -86,6 +87,14 @@ async function manejar(msg) {
       return construirDashboard(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG, MODELO.teFilas);
     case 'drill':
       return construirDrill(MODELO.filas, MODELO.teFilas, msg.filtros || {}, msg.sel || {}, msg.cfg || DEFAULT_CONFIG);
+    case 'registro': {
+      // Registro día por día de incidencias (para las descargas a Excel).
+      const filtros = msg.filtros || {};
+      const filas = msg.sel ? MODELO.filas.filter(alcanceDrill(msg.sel, filtros)) : MODELO.filas;
+      const reg = registroIncidencias(filas, filtros, msg.cfg || DEFAULT_CONFIG, { keyIds: msg.keyIds, tipos: msg.tipos });
+      // columnas: [clave, título]; fechas: keyId -> "Falta injustificada: 02/09, 04/09 · …"
+      return { ...reg, columnas: COLS_REGISTRO, fechas: Object.fromEntries(fechasPorPersona(reg.filas)) };
+    }
     case 'complementarios':
       return construirComplementarios(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG);
     case 'alertas':

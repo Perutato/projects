@@ -55,7 +55,21 @@ export function compararCortes(actual, anterior) {
     );
   };
 
-  return { resumen, porSucursal: agg('s'), porJefe: agg('j') };
+  // Detalle día por día: qué incidencia, de quién, qué día y en qué estado quedó.
+  const fila = (i, estado) => {
+    const [keyId, ymd] = String(i.k).split('|');
+    return {
+      estado, keyId, fecha: ymd && ymd.length === 8 ? `${ymd.slice(6, 8)}/${ymd.slice(4, 6)}/${ymd.slice(0, 4)}` : '',
+      orden: ymd || '', incidencia: i.t, sucursal: i.s, jefe: i.j, dashboard: i.d,
+    };
+  };
+  const detalle = [
+    ...nuevas.map((i) => fila(i, 'Nueva')),
+    ...pendientes.map((i) => fila(i, 'Pendiente')),
+    ...regularizadas.map((i) => fila(i, 'Regularizada')),
+  ].sort((x, y) => x.keyId.localeCompare(y.keyId) || x.orden.localeCompare(y.orden) || x.incidencia.localeCompare(y.incidencia));
+
+  return { resumen, porSucursal: agg('s'), porJefe: agg('j'), detalle };
 }
 
 /**

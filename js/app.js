@@ -426,6 +426,12 @@ function exportarHistorico(cortes) {
     { nombre: 'Cortes', columnas: ['fecha', 'tipo', 'actuales', 'nuevas', 'pendientes', 'regularizadas', 'pctRegularizacion'], titulos: ['Fecha', 'Tipo', 'Actuales', 'Nuevas', 'Pendientes', 'Regularizadas', '% Regularización'], filas: resumen },
     { nombre: 'Por sucursal', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Sucursal', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porSucursal },
     { nombre: 'Por jefe', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Jefe', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porJefe },
+    {
+      nombre: 'Detalle último corte',
+      columnas: ['keyId', 'fecha', 'incidencia', 'estado', 'sucursal', 'jefe', 'dashboard'],
+      titulos: ['DNI / CE', 'Fecha', 'Incidencia', 'Estado vs. corte anterior', 'Sucursal', 'Jefe directo', 'Dashboard'],
+      filas: cmp.detalle,
+    },
   ];
   exportarExcelHojas(`Historico_${new Date().toISOString().slice(0, 10)}`, hojas);
 }

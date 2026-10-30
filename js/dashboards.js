@@ -14,7 +14,7 @@
 import { fmtMiles, fmtPct, fmtHoras, fmtDec1 } from './config.js';
 import * as charts from './charts.js';
 import { T } from './charts.js';
-import { exportarCSV, exportarExcelHojas } from './exports.js';
+import { exportarCSV, exportarExcelHojas, hojaRegistro, hojaResumenIncidencias } from './exports.js';
 import { icon, help } from './icons.js';
 
 // Color de interfaz (campo de cabecera, acciones) y color de dato (marcas de
@@ -96,14 +96,14 @@ const GRAF = {
   fuga: {
     titulo: 'Fuga de tiempo por sucursal', sub: 'Horas perdidas por tardanzas y por salidas anticipadas', tipo: 'apiladas',
     formula: 'Σ atraso E1 (tardanzas) + Σ adelanto S2 (salidas anticipadas), en horas.',
-    datos: (d) => d.graficos.fuga, sufijo: ' h',
+    datos: (d) => d.graficos.fuga, sufijo: ' h', metricaReporte: 'fuga',
     series: [{ key: 'a', nombre: 'Tardanzas', color: T.s1, metrica: 'tardanzas' }, { key: 'b', nombre: 'Salidas anticipadas', color: T.s2, metrica: 'salidas' }],
     cols: [['sucursal', 'Sucursal', 'txt'], ['a', 'Tardanzas (h)', 'h'], ['b', 'Salidas anticipadas (h)', 'h']],
   },
   justHoras: {
     titulo: 'Horas justificadas por sucursal', sub: 'Atrasos de ingreso y adelantos de salida justificados', tipo: 'apiladas',
     formula: 'Σ minutos de atraso justificado y Σ minutos de salida justificada, en horas.',
-    datos: (d) => d.graficos.justHoras, sufijo: ' h',
+    datos: (d) => d.graficos.justHoras, sufijo: ' h', metricaReporte: 'justificaciones',
     series: [{ key: 'a', nombre: 'Atrasos justificados', color: T.s1, metrica: 'justAtraso' }, { key: 'b', nombre: 'Salidas justificadas', color: T.s2, metrica: 'justSalida' }],
     cols: [['sucursal', 'Sucursal', 'txt'], ['a', 'Atrasos (h)', 'h'], ['b', 'Salidas (h)', 'h']],
   },
@@ -530,7 +530,7 @@ export function crearDashboards({ callWorker, getCfg }) {
             <button type="button" data-modo="grafico" aria-pressed="${v.modo === 'grafico'}" class="${v.modo === 'grafico' ? 'activo' : ''}" title="Ver como gráfico">${icon('barras')}<span class="sr">Gráfico</span></button>
             <button type="button" data-modo="tabla" aria-pressed="${v.modo === 'tabla'}" class="${v.modo === 'tabla' ? 'activo' : ''}" title="Ver como tabla">${icon('tabla')}<span class="sr">Tabla</span></button>
           </div>
-          <button type="button" class="btn-icono" data-export="${key}" title="Descargar estos datos (CSV)">${icon('download')}<span class="sr">Descargar</span></button>
+          <button type="button" class="btn-icono" data-export="${key}" title="Descargar Excel: datos del gráfico, trabajadores y sus días">${icon('download')}<span class="sr">Descargar Excel</span></button>
         </div>`}
       </header>
       ${vacio ? '<p class="vacio">Sin casos en el filtro actual.</p>' : `
@@ -1036,6 +1036,7 @@ export function crearDashboards({ callWorker, getCfg }) {
     const { dashboard, sel, res } = ds;
     const capa = contenedor(dashboard).querySelector('[data-drawer]');
     const cols = columnasDrill(res);
+    if (!esTodos(res) && res.personas.some((p) => p.fechas)) cols.splice(3, 0, ['fechas', 'Fechas', 'fechas']);
     let filas = res.personas;
     if (ds.q) {
       const q = ds.q.toLowerCase();
@@ -1076,13 +1077,13 @@ export function crearDashboards({ callWorker, getCfg }) {
         </div>
         <div class="drawer-body">
           ${total ? `<table class="tabla tabla-drawer">
-            <thead><tr>${cols.map(([k, l, t]) => `<th class="${t !== 'txt' && t !== 'persona' ? 'num' : ''}"><button type="button" class="th-orden" data-dorden="${k}">${esc(l)}${ds.orden && ds.orden[0] === k ? icon(ds.orden[1] === -1 ? 'down' : 'up', 'ico-xs') : ''}</button></th>`).join('')}</tr></thead>
+            <thead><tr>${cols.map(([k, l, t]) => `<th class="${t !== 'txt' && t !== 'persona' && t !== 'fechas' ? 'num' : ''}"><button type="button" class="th-orden" data-dorden="${k}">${esc(l)}${ds.orden && ds.orden[0] === k ? icon(ds.orden[1] === -1 ? 'down' : 'up', 'ico-xs') : ''}</button></th>`).join('')}</tr></thead>
             <tbody>${vis.map((p) => `<tr>${cols.map(([k, , t]) => celda(p, k, t)).join('')}</tr>`).join('')}</tbody>
           </table>${total > MAX ? `<p class="nota">Se muestran ${fmtMiles(MAX)} de ${fmtMiles(total)} personas; el Excel y el CSV las incluyen todas.</p>` : ''}`
           : '<p class="vacio">No hay trabajadores con este caso en el filtro.</p>'}
         </div>
         <footer class="drawer-pie">
-          <p class="nota">El Excel trae tres hojas: <b>Trabajadores</b> (toda su información), <b>Detalle por día</b>${res.detalle.length ? ` (${fmtMiles(res.detalle.length)} filas${res.truncado ? ', recortado a 20.000' : ''})` : ''} y <b>Filtro</b> (lo que se aplicó).</p>
+          <p class="nota">El Excel trae <b>Trabajadores</b> (su información y las fechas de cada caso), <b>Días</b> (una fila por persona y día${res.detalle.length ? `: ${fmtMiles(res.detalle.length)} filas${res.truncado ? ', recortado a 20.000' : ''}` : ''}), <b>Todas las incidencias</b> de esas personas día por día y <b>Filtro</b>.</p>
         </footer>
       </aside>`;
     const drawer = capa.querySelector('.drawer');
@@ -1146,13 +1147,14 @@ export function crearDashboards({ callWorker, getCfg }) {
     ['hheeEjecH', 'HHEE ejecutadas (h)'], ['hheeAprobH', 'HHEE aprobadas (h)'], ['hheeCumplH', 'HHEE reconocidas (h)'], ['hheeNoRecH', 'HHEE no reconocidas (h)'], ['desviacionH', 'Brecha HHEE (h)'],
   ];
   const COLS_DIA = [
-    ['fecha', 'Fecha'], ['dia', 'Día'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['estadoDia', 'Estado del día'], ['tipoTurno', 'Tipo de turno'],
+    ['fecha', 'Fecha'], ['dia', 'Día'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['incidencia', 'Caso'], ['minutos', 'Minutos del caso'],
+    ['estadoDia', 'Estado del día'], ['tipoTurno', 'Tipo de turno'],
     ['turno', 'Turno'], ['entrada', 'Primera entrada'], ['salida', 'Última salida'], ['marcas', 'Marcas (E1-S1-E2-S2)'],
     ['atrasoE1', 'Atraso E1 (min)'], ['adelantoS1', 'Adelanto S1 (min)'], ['atrasoE2', 'Atraso E2 (min)'], ['adelantoS2', 'Adelanto S2 (min)'],
     ['fugaMin', 'Fuga (min)'], ['permiso', 'Permiso'], ['justificacion', 'Justificación registrada'],
   ];
   const COLS_DIA_TE = [
-    ['fecha', 'Fecha'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['turno', 'Turno'],
+    ['fecha', 'Fecha'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['incidencia', 'Caso'], ['turno', 'Turno'],
     ['ejecutadasH', 'Ejecutadas (h)'], ['aprobadasH', 'Aprobadas (h)'], ['cumplidasH', 'Reconocidas (h)'], ['noReconocidasH', 'No reconocidas (h)'], ['conAsistencia', 'Con fila de asistencia'],
   ];
 
@@ -1160,11 +1162,29 @@ export function crearDashboards({ callWorker, getCfg }) {
     const ds = drawerEstado;
     if (!ds) return;
     const { dashboard, sel, res } = ds;
-    const r2 = (v) => (typeof v === 'number' ? +v.toFixed(2) : v ?? '');
-    const personas = res.personas.map((p) => Object.fromEntries(COLS_PERSONA.map(([k]) => [k, r2(p[k])])));
     const base = `Trabajadores_${slug(res.titulo)}${sel.sucursal ? '_' + slug(sel.sucursal) : ''}${sel.malla ? '_malla_' + slug(sel.malla.split('|')[0]) : ''}_${hoy()}`;
+    return descargarReporte(dashboard, sel, res, base, formato);
+  }
+
+  /**
+   * Reporte de trabajadores de una selección. Excel con:
+   *  - Trabajadores: su información, los indicadores y las fechas del caso.
+   *  - Días: <caso>: una fila por persona y día del caso (p. ej. cada falta).
+   *  - Todas las incidencias: el registro día por día de todo lo demás que tuvo
+   *    cada una de esas personas en el mismo alcance.
+   *  - Filtro: lo que estaba aplicado.
+   * El CSV lleva la hoja Trabajadores con las fechas.
+   */
+  async function descargarReporte(dashboard, sel, res, base, formato, hojasPrevias = []) {
+    const reg = await callWorker('registro', {
+      filtros: estado[dashboard], cfg: getCfg(), sel: { ...sel, metrica: undefined },
+      keyIds: res.personas.map((p) => p.keyId),
+    });
+    const r2 = (v) => (typeof v === 'number' ? +v.toFixed(2) : v ?? '');
+    const cols = colsPersona(res);
+    const personas = res.personas.map((p) => Object.fromEntries(cols.map(([k]) => [k, k === 'incidenciasFechas' ? reg.fechas[p.keyId] || '' : r2(p[k])])));
     if (formato === 'csv') {
-      exportarCSV(base, COLS_PERSONA.map((c) => c[0]), personas, COLS_PERSONA.map((c) => c[1]));
+      exportarCSV(base, cols.map((c) => c[0]), personas, cols.map((c) => c[1]));
       return;
     }
     const colsDia = res.esTE ? COLS_DIA_TE : COLS_DIA;
@@ -1185,23 +1205,52 @@ export function crearDashboards({ callWorker, getCfg }) {
       { campo: 'Casos', valor: res.resumen.eventos },
       { campo: 'Generado', valor: new Date().toLocaleString('es-PE') },
     ];
-    exportarExcelHojas(base, [
-      { nombre: 'Trabajadores', columnas: COLS_PERSONA.map((c) => c[0]), titulos: COLS_PERSONA.map((c) => c[1]), filas: personas },
-      { nombre: 'Detalle por día', columnas: colsDia.map((c) => c[0]), titulos: colsDia.map((c) => c[1]), filas: res.detalle },
+    const detalle = res.truncado ? [...res.detalle, { fecha: `Se muestran ${res.detalle.length} filas; acota el filtro para ver el resto.` }] : res.detalle;
+    await exportarExcelHojas(base, [
+      ...hojasPrevias,
+      { nombre: 'Trabajadores', columnas: cols.map((c) => c[0]), titulos: cols.map((c) => c[1]), filas: personas },
+      { nombre: res.detalle.length && !esTodos(res) ? `Días - ${res.titulo}` : 'Registro por día', columnas: colsDia.map((c) => c[0]), titulos: colsDia.map((c) => c[1]), filas: detalle },
+      hojaRegistro(reg, 'Todas las incidencias'),
+      hojaResumenIncidencias(reg),
       { nombre: 'Filtro', columnas: ['campo', 'valor'], titulos: ['Campo', 'Valor'], filas: filtro },
     ]);
   }
+  // Métricas que cuentan a todas las personas (su "detalle" son todos sus días).
+  function esTodos(res) { return ['personas', 'fiscalizables', 'noFiscalizables', 'asistencia'].includes(res.sel.metrica); }
+  function colsPersona(res) {
+    const cols = [...COLS_PERSONA];
+    const i = cols.findIndex((c) => c[0] === 'minEvento') + 1;
+    if (!esTodos(res)) cols.splice(i, 0, ['fechas', `Fechas: ${res.titulo}`]);
+    cols.push(['incidenciasFechas', 'Todas sus incidencias por fecha']);
+    return cols;
+  }
 
   // ---- Exportaciones de gráficos y de la matriz ----------------------------------
-  function exportarGrafico(dashboard, key) {
+  // Descarga de un gráfico: sus datos por sucursal + el reporte de los
+  // trabajadores detrás (con las fechas de cada caso).
+  async function exportarGrafico(dashboard, key) {
     const g = GRAF[key];
     const data = ultData[dashboard];
     if (!g || !data) return;
     const arr = g.datos(data) || [];
-    exportarCSV(`${slug(g.titulo)}_${slug(NOMBRE[dashboard])}_${hoy()}`, g.cols.map((c) => c[0]),
-      arr.map((x) => Object.fromEntries(g.cols.map(([k]) => [k, typeof x[k] === 'number' ? +x[k].toFixed(2) : x[k]]))), g.cols.map((c) => c[1]));
+    const hojaDatos = {
+      nombre: 'Datos del gráfico', columnas: g.cols.map((c) => c[0]), titulos: g.cols.map((c) => c[1]),
+      filas: arr.map((x) => Object.fromEntries(g.cols.map(([k]) => [k, typeof x[k] === 'number' ? +x[k].toFixed(2) : x[k]]))),
+    };
+    const sel = { metrica: g.metrica || g.metricaReporte };
+    toastVista(dashboard, 'Preparando el Excel con los trabajadores y sus días…');
+    const res = await callWorker('drill', { filtros: estado[dashboard], sel, cfg: getCfg() });
+    await descargarReporte(dashboard, sel, res, `${slug(g.titulo)}_${slug(NOMBRE[dashboard])}_${hoy()}`, 'excel', [hojaDatos]);
   }
-  function exportarMatriz(dashboard, formato) {
+  function toastVista(dashboard, msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'toast visible ok';
+    clearTimeout(toastVista.timer);
+    toastVista.timer = setTimeout(() => (t.className = 'toast'), 2500);
+  }
+  async function exportarMatriz(dashboard, formato) {
     const data = ultData[dashboard];
     const cols = [
       ['sucursal', 'Sucursal'], ['personas', 'Personas'], ['fiscalizables', 'Fiscalizables'], ['pctAsistencia', '% asistencia'], ['sumPresente', 'Días presentes'],
@@ -1213,7 +1262,16 @@ export function crearDashboards({ callWorker, getCfg }) {
     ];
     const filas = data.porSucursal.map((s) => Object.fromEntries(cols.map(([k]) => [k, typeof s[k] === 'number' ? +s[k].toFixed(2) : s[k]])));
     const nombre = `Sucursales_${slug(NOMBRE[dashboard])}_${hoy()}`;
-    if (formato === 'excel') exportarExcelHojas(nombre, [{ nombre: 'Sucursales', columnas: cols.map((c) => c[0]), titulos: cols.map((c) => c[1]), filas }]);
+    if (formato === 'excel') {
+      // Además del resumen por sucursal, el registro día por día de cada incidencia.
+      toastVista(dashboard, 'Preparando el Excel con el registro de incidencias…');
+      const reg = await callWorker('registro', { filtros: estado[dashboard], cfg: getCfg() });
+      await exportarExcelHojas(nombre, [
+        { nombre: 'Sucursales', columnas: cols.map((c) => c[0]), titulos: cols.map((c) => c[1]), filas },
+        hojaResumenIncidencias(reg),
+        hojaRegistro(reg),
+      ]);
+    }
     else exportarCSV(nombre, cols.map((c) => c[0]), filas, cols.map((c) => c[1]));
   }
 
@@ -1295,6 +1353,7 @@ function celda(p, k, t) {
   const v = p[k];
   if (t === 'persona') return `<td><b>${esc(p.nombre)}</b><small>${esc(p.keyId)}${p.cargo ? ' · ' + esc(p.cargo) : ''}</small></td>`;
   if (t === 'txt') return `<td>${esc(v)}</td>`;
+  if (t === 'fechas') return `<td class="td-fechas">${esc(v)}</td>`;
   if (v === null || v === undefined) return '<td class="num">—</td>';
   if (t === 'pct') return `<td class="num">${fmtPct(v)}</td>`;
   if (t === 'h') return `<td class="num">${fmtHoras(v)}</td>`;

@@ -39,6 +39,11 @@ export async function exportarExcelHojas(nombreArchivo, hojas) {
     const head = h.titulos || h.columnas;
     const aoa = [head, ...h.filas.map((f) => h.columnas.map((c) => f[c] ?? ''))];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // Ancho de columnas según el contenido (tope 60) y filtro en la cabecera.
+    ws['!cols'] = head.map((_, c) => ({
+      wch: Math.min(60, Math.max(8, ...aoa.slice(0, 500).map((r) => String(r[c] ?? '').length + 2))),
+    }));
+    if (aoa.length > 1 && head.length) ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: aoa.length - 1, c: head.length - 1 } }) };
     // Nombre de hoja válido (<=31 chars, sin caracteres prohibidos, único).
     let nom = String(h.nombre || 'Hoja').replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || 'Hoja';
     let i = 2;
@@ -57,8 +62,9 @@ export async function exportarExcelHojas(nombreArchivo, hojas) {
  * @param {string[]} columnas
  * @param {object[]} filas
  * @param {string[]} [titulos]
+ * @param {object[]} [hojasExtra] hojas que se agregan al final (mismo formato que exportarExcelHojas)
  */
-export async function exportarExcelPorGrupo(nombreArchivo, campoGrupo, columnas, filas, titulos) {
+export async function exportarExcelPorGrupo(nombreArchivo, campoGrupo, columnas, filas, titulos, hojasExtra = []) {
   const grupos = new Map();
   for (const f of filas) {
     const k = f[campoGrupo] || '(sin dato)';
@@ -68,7 +74,7 @@ export async function exportarExcelPorGrupo(nombreArchivo, campoGrupo, columnas,
   const hojas = [...grupos.entries()]
     .sort((a, b) => b[1].length - a[1].length)
     .map(([k, arr]) => ({ nombre: k, columnas, titulos, filas: arr }));
-  await exportarExcelHojas(nombreArchivo, hojas);
+  await exportarExcelHojas(nombreArchivo, [...hojas, ...hojasExtra]);
 }
 
 /** Exporta a CSV (separador coma, con BOM para Excel es-PE). */
@@ -93,4 +99,20 @@ function descargar(blob, nombre) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * Hoja "registro de incidencias" a partir de la respuesta del worker
+ * ('registro'): una fila por persona, día e incidencia.
+ */
+export function hojaRegistro(reg, nombre = 'Registro de incidencias') {
+  const filas = reg.truncado
+    ? [...reg.filas, { fecha: `Se muestran ${reg.filas.length} de ${reg.total} filas; acota el filtro para ver el resto.` }]
+    : reg.filas;
+  return { nombre, columnas: reg.columnas.map((c) => c[0]), titulos: reg.columnas.map((c) => c[1]), filas };
+}
+
+/** Hoja con el conteo de días y personas por tipo de incidencia. */
+export function hojaResumenIncidencias(reg, nombre = 'Incidencias por tipo') {
+  return { nombre, columnas: ['incidencia', 'dias', 'personas'], titulos: ['Incidencia', 'Días', 'Personas'], filas: reg.porTipo };
 }
