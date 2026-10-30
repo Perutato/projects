@@ -228,6 +228,17 @@ export function construirModelo({ personas, asistencia, tiempoExtra, cfg = DEFAU
   );
 
   const asisKeys = new Set(asisDedup.map((a) => a.keyDia));
+  // Feriados para el Tiempo Extra: el del día de asistencia de la persona; si
+  // no hay, el calendario de festivos de la persona; si no, cualquier
+  // calendario que marque esa fecha como feriado (F).
+  const feriadoDia = new Map(asisDedup.map((a) => [a.keyDia, a.feriado === 'Sí']));
+  const feriadoCal = new Set();
+  const feriadoFecha = new Set();
+  for (const f of filas) {
+    if (f.feriado !== 'Sí') continue;
+    feriadoCal.add(`${f.calendario}|${f.yyyymmdd}`);
+    feriadoFecha.add(f.yyyymmdd);
+  }
   const teFilas = teDedup.map((t) => {
     const dot = dotacionMap.get(t.keyId) || null;
     return {
@@ -255,6 +266,9 @@ export function construirModelo({ personas, asistencia, tiempoExtra, cfg = DEFAU
       finalesMin: t.finalesMin || 0,
       noReconocidasMin: t.noReconocidasMin || 0,
       conAsistencia: asisKeys.has(t.keyDia),
+      feriado: (feriadoDia.has(t.keyDia)
+        ? feriadoDia.get(t.keyDia)
+        : dot && dot.calendario ? feriadoCal.has(`${dot.calendario}|${t.yyyymmdd}`) : feriadoFecha.has(t.yyyymmdd)) ? 'Sí' : 'No',
     };
   });
 

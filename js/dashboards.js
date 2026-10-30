@@ -122,6 +122,59 @@ const GRAF = {
   },
 };
 
+// Indicadores revisados: un gráfico por control.
+const GRAF_CTL = {
+  ctlFeriado: {
+    titulo: 'HHEE aprobadas o compensadas en feriado', sub: 'No debería haber casos · horas por sucursal', tipo: 'agrupadas',
+    formula: 'Días de Tiempo Extra en fecha feriada (F) con horas aprobadas (HEA > 0) o compensadas/reconocidas (Finales > 0). El feriado sale del calendario de asistencia de la persona.',
+    datos: (d) => d.controles.graficos.hheeFeriado, sufijo: ' h', metrica: 'hheeFeriado', vacio: 'Sin casos en el filtro: el control se cumple.',
+    series: [{ key: 'a', nombre: 'Aprobadas (HEA)', color: T.s1, metrica: 'hheeFeriadoAprob' }, { key: 'b', nombre: 'Compensadas (Finales)', color: T.s2, metrica: 'hheeFeriadoComp' }],
+    cols: [['sucursal', 'Sucursal', 'txt'], ['casos', 'Días', 'int'], ['personas', 'Personas', 'int'], ['a', 'Aprobadas (h)', 'h'], ['b', 'Compensadas (h)', 'h']],
+  },
+  ctlPartTime: {
+    titulo: 'HHEE aprobadas a part-time', sub: 'Solo por contingencia · horas aprobadas y personas', tipo: 'barras',
+    formula: 'Días de Tiempo Extra con horas aprobadas (HEA > 0) de personas con jornada Part Time (según las horas semanales de la Dotación).',
+    datos: (d) => d.controles.graficos.hheePartTime, opts: { sufijo: ' h', decimales: true, badge: true, etiquetaBadge: 'pers.', nombreSerie: 'HHEE aprobadas' }, metrica: 'hheePartTime',
+    vacio: 'Sin HHEE aprobadas a part-time en el filtro.',
+    cols: [['sucursal', 'Sucursal', 'txt'], ['casos', 'Días', 'int'], ['badge', 'Personas', 'int'], ['valor', 'Aprobadas (h)', 'h'], ['ejecH', 'Ejecutadas (h)', 'h']],
+  },
+  ctlFalta: {
+    titulo: 'Faltas con turno y sin licencia', sub: 'Días con turno programado, sin ninguna marca y sin permiso que lo justifique', tipo: 'apiladas',
+    formula: 'Turno programado + 0 marcas + permiso "Ninguno" o "Inasistencia injustificada" (sin vacaciones, descanso médico, licencia ni suspensión).',
+    datos: (d) => d.controles.graficos.faltaSinLicencia, sufijo: ' d', decimales: false, metrica: 'faltaSinLicencia', vacio: 'Sin faltas sin licencia en el filtro.',
+    series: [{ key: 'a', nombre: 'Registrada como inasistencia', color: T.s1, metrica: 'faltaSinLicReg' }, { key: 'b', nombre: 'Sin marcas ni permiso', color: T.s2, metrica: 'faltaSinLicSinMarca' }],
+    cols: [['sucursal', 'Sucursal', 'txt'], ['casos', 'Días', 'int'], ['personas', 'Personas', 'int'], ['a', 'Registradas como inasistencia', 'int'], ['b', 'Sin marcas ni permiso', 'int']],
+  },
+  ctlMarca: {
+    titulo: 'Días con una marca faltante', sub: 'Marcó, pero le falta la entrada, la salida o el refrigerio', tipo: 'agrupadas',
+    formula: 'Días con al menos una marca en los que falta E1 (entrada), S2 (salida) o, con refrigerio programado, S1 o E2. Un mismo día puede faltar en más de una.',
+    datos: (d) => d.controles.graficos.marcaFaltante, sufijo: ' d', decimales: false, metrica: 'marcaFaltante', vacio: 'Sin marcas faltantes en el filtro.',
+    series: [
+      { key: 'entrada', nombre: 'Falta entrada', color: T.s1, metrica: 'faltaEntrada' },
+      { key: 'salida', nombre: 'Falta salida', color: T.s2, metrica: 'faltaSalida' },
+      { key: 'refrigerio', nombre: 'Falta refrigerio', color: T.s3, metrica: 'faltaRefrigerio' },
+    ],
+    cols: [['sucursal', 'Sucursal', 'txt'], ['casos', 'Días', 'int'], ['personas', 'Personas', 'int'], ['entrada', 'Falta entrada', 'int'], ['salida', 'Falta salida', 'int'], ['refrigerio', 'Falta refrigerio', 'int']],
+  },
+  ctlPlan: {
+    titulo: 'Marcaciones en descanso o sin planificación', sub: 'Probablemente se olvidó asignar el turno', tipo: 'apiladas',
+    formula: 'Días con marcas y turno "Descanso", o con marcas y sin turno en la malla.',
+    datos: (d) => d.controles.graficos.marcaSinPlan, sufijo: ' d', decimales: false, metrica: 'marcaSinPlan', vacio: 'Sin marcaciones fuera de la planificación en el filtro.',
+    series: [{ key: 'a', nombre: 'En día de descanso', color: T.s1, metrica: 'descanso' }, { key: 'b', nombre: 'Sin turno asignado', color: T.s2, metrica: 'noPlan' }],
+    cols: [['sucursal', 'Sucursal', 'txt'], ['casos', 'Días', 'int'], ['personas', 'Personas', 'int'], ['a', 'En descanso', 'int'], ['b', 'Sin turno', 'int']],
+  },
+};
+Object.assign(GRAF, GRAF_CTL);
+
+// Tarjetas de los controles: qué se revisa, cuántos casos y si cumple.
+const CTL = [
+  { id: 'hheeFeriado', graf: 'ctlFeriado', lbl: 'HHEE en feriado', te: true, estricto: true, unidad: 'días', extra: (r) => `${fmtHoras(r.aprobH)} h aprob. · ${fmtHoras(r.compH)} h comp.` },
+  { id: 'hheePartTime', graf: 'ctlPartTime', lbl: 'HHEE a part-time', te: true, unidad: 'días', extra: (r) => `${fmtHoras(r.aprobH)} h aprobadas` },
+  { id: 'faltaSinLicencia', graf: 'ctlFalta', lbl: 'Faltas con turno y sin licencia', unidad: 'días', extra: (r) => `${fmtMiles(r.sinMarca)} sin marcas ni permiso` },
+  { id: 'marcaFaltante', graf: 'ctlMarca', lbl: 'Días con una marca faltante', unidad: 'días', extra: (r) => `${fmtMiles(r.entrada)} entr. · ${fmtMiles(r.salida)} sal. · ${fmtMiles(r.refrigerio)} refr.` },
+  { id: 'marcaSinPlan', graf: 'ctlPlan', lbl: 'Marcó en descanso o sin turno', unidad: 'días', extra: (r) => `${fmtMiles(r.descanso)} descanso · ${fmtMiles(r.sinTurno)} sin turno` },
+];
+
 const TEND = [
   { campo: 'pctAsistencia', nombre: 'Asistencia', sufijo: '%', dec: true, metrica: 'asistencia' },
   { campo: 'tardanzas', nombre: 'Tardanzas', sufijo: '', metrica: 'tardanzas' },
@@ -144,6 +197,7 @@ const TABS = [
   { id: 'marcacion', lbl: 'Marcación' },
   { id: 'fuga', lbl: 'Puntualidad y fuga' },
   { id: 'hhee', lbl: 'Horas extra' },
+  { id: 'controles', lbl: 'Indicadores revisados' },
   { id: 'sucursales', lbl: 'Sucursales' },
 ];
 
@@ -216,6 +270,9 @@ export function crearDashboards({ callWorker, getCfg }) {
     const data = await callWorker('dashboard', { filtros: estado[dashboard], cfg: getCfg() });
     ultData[dashboard] = data;
     pintarCabecera(dashboard, cont, data);
+    const nCtl = CTL.filter((c) => data.controles.resumen[c.id].casos > 0).length;
+    const tabCtl = cont.querySelector('[data-tab="controles"]');
+    if (tabCtl) tabCtl.innerHTML = `Indicadores revisados${nCtl ? ` <span class="tab-cuenta" aria-label="${nCtl} con casos">${nCtl}</span>` : ''}`;
     pintarAvisos(dashboard, cont, data);
     renderTab(dashboard, cont);
     if (host) host.classList.remove('cargando');
@@ -465,6 +522,14 @@ export function crearDashboards({ callWorker, getCfg }) {
         ${tiles(['hheeEjecH', 'hheeAutH', 'hheeReconH', 'hheeNoReconH', 'pctHHEERecon', 'desviacionHHEEH'], data, dashboard)}
         <div class="rejilla-2">${panelGraf(dashboard, 'hhee', data)}${panelGraf(dashboard, 'brecha', data)}</div>`;
       graf.push('hhee', 'brecha');
+    } else if (t === 'controles') {
+      html = `
+        ${lectura(insightsControles(data))}
+        ${tilesControles(data)}
+        <div class="rejilla-2">${panelGraf(dashboard, 'ctlFeriado', data)}${panelGraf(dashboard, 'ctlPartTime', data)}</div>
+        <div class="rejilla-2">${panelGraf(dashboard, 'ctlFalta', data)}${panelGraf(dashboard, 'ctlMarca', data)}</div>
+        ${panelGraf(dashboard, 'ctlPlan', data)}`;
+      graf.push('ctlFeriado', 'ctlPartTime', 'ctlFalta', 'ctlMarca', 'ctlPlan');
     } else if (t === 'sucursales') {
       html = panelMatriz(dashboard, data);
     }
@@ -507,6 +572,23 @@ export function crearDashboards({ callWorker, getCfg }) {
       b.addEventListener('click', () => abrirDrill(dashboard, { metrica: b.dataset.drill })));
   }
 
+  function tilesControles(data) {
+    const r = data.controles.resumen;
+    const sinTE = !data.nFilasTE;
+    return `<div class="tiles tiles-5">${CTL.map((c) => {
+      const x = r[c.id];
+      const est = c.te && sinTE ? null : x.casos === 0 ? 'ok' : c.estricto ? 'crit' : 'warn';
+      const txt = est === null ? 'Sin datos de Tiempo Extra' : est === 'ok' ? 'Sin casos' : c.estricto ? 'No debería haber casos' : 'Revisar';
+      const g = GRAF[c.graf];
+      return `<button class="tile" data-drill="${c.id}" title="${esc(g.formula)} · Clic para ver los trabajadores">
+        <span class="tile-lbl">${c.lbl}${help(g.formula, false)}</span>
+        <span class="tile-val">${fmtMiles(x.casos)} <small class="tile-unidad">${c.unidad}</small></span>
+        <span class="tile-delta">${fmtMiles(x.personas)} ${x.personas === 1 ? 'persona' : 'personas'} · ${c.extra(x)}</span>
+        ${est ? `<span class="estado estado-${est}">${icon(est === 'ok' ? 'calidad' : 'warning', 'ico-xs')}${txt}</span>` : `<span class="estado estado-neutro">${txt}</span>`}
+      </button>`;
+    }).join('')}</div>`;
+  }
+
   function lectura(items) {
     if (!items || !items.length) return '';
     return `<section class="lectura" aria-label="Lectura rápida"><h2>Lectura rápida</h2><ul>${items.map((t) => `<li>${t}</li>`).join('')}</ul></section>`;
@@ -533,7 +615,7 @@ export function crearDashboards({ callWorker, getCfg }) {
           <button type="button" class="btn-icono" data-export="${key}" title="Descargar Excel: datos del gráfico, trabajadores y sus días">${icon('download')}<span class="sr">Descargar Excel</span></button>
         </div>`}
       </header>
-      ${vacio ? '<p class="vacio">Sin casos en el filtro actual.</p>' : `
+      ${vacio ? `<p class="vacio">${g.vacio || 'Sin casos en el filtro actual.'}</p>` : `
         <div class="chart" id="${cid(dashboard, key)}" ${v.modo === 'tabla' ? 'hidden' : ''}></div>
         <div class="tabla-twin" ${v.modo === 'tabla' ? '' : 'hidden'}></div>
         ${largo ? `<button type="button" class="btn-link mas-filas" data-todas>${v.todas ? `Ver solo las ${TOP} primeras` : `Ver las ${fmtMiles(arr.length)} sucursales`}</button>` : ''}`}
@@ -558,8 +640,8 @@ export function crearDashboards({ callWorker, getCfg }) {
     };
     if (st.modo === 'grafico') {
       if (g.tipo === 'barras') charts.barras(id, { datos: arr, color, ...g.opts, onClick: (s) => drill(s) });
-      else if (g.tipo === 'apiladas') charts.apiladas(id, { datos: arr, series: g.series, sufijo: g.sufijo, onClick: drill });
-      else if (g.tipo === 'agrupadas') charts.agrupadas(id, { datos: arr, series: g.series, sufijo: g.sufijo, onClick: (s) => drill(s) });
+      else if (g.tipo === 'apiladas') charts.apiladas(id, { datos: arr, series: g.series, sufijo: g.sufijo, decimales: g.decimales, onClick: drill });
+      else if (g.tipo === 'agrupadas') charts.agrupadas(id, { datos: arr, series: g.series, sufijo: g.sufijo, decimales: g.decimales, onClick: drill });
       else if (g.tipo === 'divergentes') charts.divergentes(id, { datos: arr, sufijo: g.sufijo, onClick: (s) => drill(s) });
     }
     // Tabla gemela (accesible por teclado; clic o Enter abre los trabajadores).
@@ -1023,6 +1105,10 @@ export function crearDashboards({ callWorker, getCfg }) {
       hhee: [h('hheeEjecH', 'Ejecutadas'), h('hheeAprobH', 'Aprobadas'), h('hheeCumplH', 'Reconocidas'), h('desviacionH', 'Brecha')],
       hheeNoRec: [h('hheeEjecH', 'Ejecutadas'), h('hheeCumplH', 'Reconocidas'), h('hheeNoRecH', 'No reconocidas')],
       desviacion: [h('hheeEjecH', 'Ejecutadas'), h('hheeAprobH', 'Aprobadas'), h('desviacionH', 'Brecha')],
+      hheeFeriado: [...ev, ['minEvento', 'Min. aprobados en feriado', 'int'], h('hheeAprobH', 'Aprobadas (todas)'), h('hheeCumplH', 'Reconocidas (todas)')],
+      hheeFeriadoAprob: [...ev, ['minEvento', 'Min. aprobados en feriado', 'int'], h('hheeAprobH', 'Aprobadas (todas)')],
+      hheeFeriadoComp: [...ev, ['minEvento', 'Min. compensados en feriado', 'int'], h('hheeCumplH', 'Reconocidas (todas)')],
+      hheePartTime: [['jornada', 'Jornada', 'txt'], ...ev, ['minEvento', 'Min. aprobados', 'int'], h('hheeEjecH', 'Ejecutadas')],
     };
     const conMin = ['E1', 'S1', 'E2', 'S2', 'justAtraso', 'justSalida', 'exceso'];
     const cols = set[m] || (conMin.includes(m) ? [...ev, ['minEvento', 'Minutos', 'int'], ['diasEsperados', 'Días esp.', 'int']] : [...ev, ['diasEsperados', 'Días esp.', 'int'], ['pctAsistencia', 'Asistencia', 'pct']]);
@@ -1065,7 +1151,7 @@ export function crearDashboards({ callWorker, getCfg }) {
           <div>
             <p class="drawer-ctx">${NOMBRE[dashboard]} · ${contexto}</p>
             <h2 id="drawer-t">${esc(res.titulo)}</h2>
-            <p class="drawer-res"><b>${fmtMiles(r.personas)}</b> ${r.personas === 1 ? 'persona' : 'personas'}${res.detalle.length ? ` · <b>${fmtMiles(r.eventos)}</b> ${esc(res.evento.toLowerCase())}` : ''}${r.minutos ? ` · <b>${fmtHoras(r.minutos / 60)} h</b>` : ''}</p>
+            <p class="drawer-res"><b>${fmtMiles(r.personas)}</b> ${r.personas === 1 ? 'persona' : 'personas'}${res.detalle.length ? ` · <b>${fmtMiles(r.eventos)}</b> ${esc(res.evento.charAt(0).toLowerCase() + res.evento.slice(1))}` : ''}${r.minutos ? ` · <b>${fmtHoras(r.minutos / 60)} h</b>` : ''}</p>
           </div>
           <button type="button" class="btn-icono" data-cerrar aria-label="Cerrar">${icon('close')}</button>
         </header>
@@ -1151,10 +1237,10 @@ export function crearDashboards({ callWorker, getCfg }) {
     ['estadoDia', 'Estado del día'], ['tipoTurno', 'Tipo de turno'],
     ['turno', 'Turno'], ['entrada', 'Primera entrada'], ['salida', 'Última salida'], ['marcas', 'Marcas (E1-S1-E2-S2)'],
     ['atrasoE1', 'Atraso E1 (min)'], ['adelantoS1', 'Adelanto S1 (min)'], ['atrasoE2', 'Atraso E2 (min)'], ['adelantoS2', 'Adelanto S2 (min)'],
-    ['fugaMin', 'Fuga (min)'], ['permiso', 'Permiso'], ['justificacion', 'Justificación registrada'],
+    ['fugaMin', 'Fuga (min)'], ['faltantes', 'Marcas que faltan'], ['feriado', 'Feriado'], ['permiso', 'Permiso'], ['justificacion', 'Justificación registrada'],
   ];
   const COLS_DIA_TE = [
-    ['fecha', 'Fecha'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['incidencia', 'Caso'], ['turno', 'Turno'],
+    ['fecha', 'Fecha'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['incidencia', 'Caso'], ['jornada', 'Jornada'], ['feriado', 'Feriado'], ['turno', 'Turno'],
     ['ejecutadasH', 'Ejecutadas (h)'], ['aprobadasH', 'Aprobadas (h)'], ['cumplidasH', 'Reconocidas (h)'], ['noReconocidasH', 'No reconocidas (h)'], ['conAsistencia', 'Con fila de asistencia'],
   ];
 
@@ -1209,7 +1295,7 @@ export function crearDashboards({ callWorker, getCfg }) {
     await exportarExcelHojas(base, [
       ...hojasPrevias,
       { nombre: 'Trabajadores', columnas: cols.map((c) => c[0]), titulos: cols.map((c) => c[1]), filas: personas },
-      { nombre: res.detalle.length && !esTodos(res) ? `Días - ${res.titulo}` : 'Registro por día', columnas: colsDia.map((c) => c[0]), titulos: colsDia.map((c) => c[1]), filas: detalle },
+      { nombre: res.detalle.length && !esTodos(res) ? 'Días del caso' : 'Registro por día', columnas: colsDia.map((c) => c[0]), titulos: colsDia.map((c) => c[1]), filas: detalle },
       hojaRegistro(reg, 'Todas las incidencias'),
       hojaResumenIncidencias(reg),
       { nombre: 'Filtro', columnas: ['campo', 'valor'], titulos: ['Campo', 'Valor'], filas: filtro },
@@ -1307,6 +1393,33 @@ export function crearDashboards({ callWorker, getCfg }) {
     if (punto && punto.minTotales) out.push(`La marca que más minutos pierde es <b>${esc(punto.punto)}</b>: ${fmtMiles(punto.dias)} días, ${fmtDec1(punto.promedio)} min en promedio.`);
     return out;
   }
+  function insightsControles(data) {
+    const r = data.controles.resumen;
+    const g = data.controles.graficos;
+    const out = [];
+    const peor = (arr) => (arr && arr[0] ? ` La sucursal con más casos es <b>${esc(arr[0].sucursal)}</b> (${fmtMiles(arr[0].casos)}).` : '');
+    if (!data.nFilasTE) out.push('No hay archivo de Tiempo Extra cargado: los dos controles de HHEE no se pueden revisar.');
+    else {
+      out.push(r.hheeFeriado.casos
+        ? `<b>${fmtMiles(r.hheeFeriado.casos)}</b> días feriados tienen HHEE aprobadas o compensadas (${fmtMiles(r.hheeFeriado.personas)} personas); no debería haber ninguno.${peor(g.hheeFeriado)}`
+        : 'No hay HHEE aprobadas ni compensadas en feriados: el control se cumple.');
+      out.push(r.hheePartTime.casos
+        ? `Se aprobaron <b>${fmtHoras(r.hheePartTime.aprobH)} h</b> de HHEE a <b>${fmtMiles(r.hheePartTime.personas)}</b> personas part-time en ${fmtMiles(r.hheePartTime.casos)} días: confirmar que fueron por contingencia.`
+        : 'No hay HHEE aprobadas a personas part-time.');
+    }
+    out.push(r.faltaSinLicencia.casos
+      ? `<b>${fmtMiles(r.faltaSinLicencia.casos)}</b> días con turno no tuvieron ninguna marca ni licencia (${fmtMiles(r.faltaSinLicencia.personas)} personas); ${fmtMiles(r.faltaSinLicencia.sinMarca)} ni siquiera están registrados como inasistencia.${peor(g.faltaSinLicencia)}`
+      : 'No hay faltas con turno y sin licencia.');
+    const m = r.marcaFaltante;
+    out.push(m.casos
+      ? `<b>${fmtMiles(m.casos)}</b> días tienen una marca faltante: ${fmtMiles(m.entrada)} sin entrada, ${fmtMiles(m.salida)} sin salida y ${fmtMiles(m.refrigerio)} sin refrigerio.`
+      : 'Todos los días marcados tienen sus marcas completas.');
+    out.push(r.marcaSinPlan.casos
+      ? `<b>${fmtMiles(r.marcaSinPlan.casos)}</b> días con marcas fuera de la planificación (${fmtMiles(r.marcaSinPlan.descanso)} en descanso, ${fmtMiles(r.marcaSinPlan.sinTurno)} sin turno): revisar si falta asignar el turno.`
+      : 'No hay marcaciones en días de descanso ni sin turno.');
+    return out;
+  }
+
   function insightsHHEE(data) {
     const k = data.kpis;
     const noRec = k.hheeEjecH ? (k.hheeNoReconH / k.hheeEjecH) * 100 : 0;

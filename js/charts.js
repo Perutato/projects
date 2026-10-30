@@ -160,7 +160,7 @@ export function barras(id, o) {
 }
 
 // ---- Barras apiladas (dos series) --------------------------------------------
-/** o: { datos:[{sucursal,a,b}], series:[{key:'a',nombre,color},{key:'b',...}], sufijo, onClick(sucursal, key) } */
+/** o: { datos:[{sucursal,a,b}], series:[{key:'a',nombre,color},{key:'b',...}], sufijo, decimales (por defecto sí), onClick(sucursal, key) } */
 export function apiladas(id, o) {
   const arr = [...o.datos].reverse();
   const cats = arr.map((d) => d.sucursal);
@@ -173,13 +173,13 @@ export function apiladas(id, o) {
         const d = arr[ps[0].dataIndex];
         const total = o.series.reduce((s, x) => s + d[x.key], 0);
         return tooltipHTML(d.sucursal, [
-          ...o.series.map((x) => ({ color: x.color, valor: fmtValor(d[x.key], o.sufijo, true), nombre: x.nombre })),
-          { color: 'transparent', valor: fmtValor(total, o.sufijo, true), nombre: 'Total' },
+          ...o.series.map((x) => ({ color: x.color, valor: fmtValor(d[x.key], o.sufijo, o.decimales !== false), nombre: x.nombre })),
+          { color: 'transparent', valor: fmtValor(total, o.sufijo, o.decimales !== false), nombre: 'Total' },
         ], 'Clic en un tramo para ver los trabajadores');
       },
     },
     xAxis: {
-      type: 'value', axisLabel: { ...ejeTxt, formatter: (v) => ejeNum(v) + (o.sufijo || '') },
+      type: 'value', minInterval: o.decimales === false ? 1 : 0, axisLabel: { ...ejeTxt, formatter: (v) => ejeNum(v) + (o.sufijo || '') },
       splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false },
     },
     yAxis: {
@@ -194,7 +194,7 @@ export function apiladas(id, o) {
       emphasis: { focus: 'series' },
       label: i === o.series.length - 1 ? {
         show: true, position: 'right', color: T.ink2, fontSize: 11, fontFamily: T.fuente,
-        formatter: (p) => fmtValor(o.series.reduce((s, k) => s + arr[p.dataIndex][k.key], 0), o.sufijo, true),
+        formatter: (p) => fmtValor(o.series.reduce((s, k) => s + arr[p.dataIndex][k.key], 0), o.sufijo, o.decimales !== false),
       } : { show: false },
     })),
   };
@@ -212,11 +212,11 @@ export function agrupadas(id, o) {
       ...TOOLTIP, trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(20,24,27,.04)' } },
       formatter: (ps) => {
         const d = arr[ps[0].dataIndex];
-        return tooltipHTML(d.sucursal, o.series.map((x) => ({ color: x.color, valor: fmtValor(d[x.key], o.sufijo, true), nombre: x.nombre })));
+        return tooltipHTML(d.sucursal, o.series.map((x) => ({ color: x.color, valor: fmtValor(d[x.key], o.sufijo, o.decimales !== false), nombre: x.nombre })));
       },
     },
     xAxis: {
-      type: 'value', axisLabel: { ...ejeTxt, formatter: (v) => ejeNum(v) + (o.sufijo || '') },
+      type: 'value', minInterval: o.decimales === false ? 1 : 0, axisLabel: { ...ejeTxt, formatter: (v) => ejeNum(v) + (o.sufijo || '') },
       splitLine: SPLIT, axisLine: { show: false }, axisTick: { show: false },
     },
     yAxis: {

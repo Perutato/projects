@@ -6,7 +6,7 @@
 // Funciones puras (corre en el worker).
 // =============================================================================
 
-import { filtrar } from './kpis.js';
+import { filtrar, marcasFaltantes } from './kpis.js';
 import { DEFAULT_CONFIG } from './config.js';
 
 const esIncompleta = (f) => f.nMarcaciones > 0 && !(typeof f.tipoMarcacion === 'string' && f.tipoMarcacion.startsWith('Completa'));
@@ -32,7 +32,10 @@ export const TIPOS_INCIDENCIA = [
   {
     id: 'marcIncompleta', nombre: 'Marcación incompleta',
     pred: esIncompleta,
-    detalle: (f) => `Registró ${f.nMarcaciones} de 4 marcas${f.patronMarcacion ? ` (${f.patronMarcacion})` : ''}`,
+    detalle: (f) => {
+      const falta = marcasFaltantes(f);
+      return `${falta.length ? `Falta la marca de ${falta.join(' y ')}` : `Registró ${f.nMarcaciones} de 4 marcas`}${f.patronMarcacion ? ` (${f.patronMarcacion})` : ''}`;
+    },
   },
   {
     id: 'tardanza', nombre: 'Tardanza (E1)',
