@@ -439,6 +439,7 @@ p.nota { margin: 8px 0; }
 .drawer-body { flex: 1; overflow: auto; padding: 0 24px 12px; }
 .drawer-body .tabla th { top: 0; }
 .tabla-drawer td { white-space: nowrap; }
+.tabla-drawer td.td-fechas { white-space: normal; min-width: 180px; max-width: 280px; font-size: 12px; color: var(--tinta2); }
 .drawer-pie { padding: 10px 24px; border-top: 1px solid var(--borde); background: var(--suelo); }
 .drawer-pie .nota { margin: 0; }
 

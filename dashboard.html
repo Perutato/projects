@@ -446,6 +446,7 @@ p.nota { margin: 8px 0; }
 .drawer-body { flex: 1; overflow: auto; padding: 0 24px 12px; }
 .drawer-body .tabla th { top: 0; }
 .tabla-drawer td { white-space: nowrap; }
+.tabla-drawer td.td-fechas { white-space: normal; min-width: 180px; max-width: 280px; font-size: 12px; color: var(--tinta2); }
 .drawer-pie { padding: 10px 24px; border-top: 1px solid var(--borde); background: var(--suelo); }
 .drawer-pie .nota { margin: 0; }
 
@@ -2719,6 +2720,12 @@ const METRICAS_DRILL = {
 
 const LIMITE_DETALLE = 20000;
 
+/** ["20260902","20260904"] -> "02/09/2026, 04/09/2026" (ordenadas, con tope). */
+function fechasCortas(lista, max = 40) {
+  const f = [...new Set(lista)].sort().map(fFecha);
+  return f.length > max ? `${f.slice(0, max).join(', ')} … y ${f.length - max} más` : f.join(', ');
+}
+
 function fFecha(s) {
   return s && s.length === 8 ? `${s.slice(6, 8)}/${s.slice(4, 6)}/${s.slice(0, 4)}` : '';
 }
@@ -2728,14 +2735,19 @@ function fFecha(s) {
  * @param {object} sel { metrica, sucursal?, periodo?, granularidad?, keyId?, malla? }
  * @returns {{titulo, personas, detalle, truncado, resumen}}
  */
-function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFIG) {
-  const m = METRICAS_DRILL[sel.metrica] || METRICAS_DRILL.personas;
+/** Predicado del alcance de una selección (sucursal, período, persona, malla). */
+function alcanceDrill(sel = {}, filtros = {}) {
   const gran = sel.granularidad || filtros.granularidad || 'dia';
-  const enAlcance = (r) =>
+  return (r) =>
     (!sel.sucursal || r.sucursal === sel.sucursal) &&
     (!sel.periodo || clavePeriodo(r, gran) === sel.periodo) &&
     (!sel.keyId || r.keyId === sel.keyId) &&
     (!sel.malla || claveMalla(r) === sel.malla);
+}
+
+function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFIG) {
+  const m = METRICAS_DRILL[sel.metrica] || METRICAS_DRILL.personas;
+  const enAlcance = alcanceDrill(sel, filtros);
   const base = filtrar(filas, filtros).filter(enAlcance);
   const teBase = (teFilas ? filtrar(teFilas, filtros) : []).filter(enAlcance);
 
@@ -2743,8 +2755,9 @@ function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFIG) {
   const eventos = fuente.filter((r) => m.pred(r, cfg));
   const porKey = new Map();
   for (const r of eventos) {
-    const o = porKey.get(r.keyId) || { n: 0, min: 0 };
+    const o = porKey.get(r.keyId) || { n: 0, min: 0, fechas: [] };
     o.n++;
+    o.fechas.push(r.yyyymmdd);
     o.min += m.min ? m.min(r) || 0 : 0;
     porKey.set(r.keyId, o);
   }
@@ -2797,6 +2810,8 @@ function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFIG) {
       ...p,
       eventos: ev.n,
       minEvento: ev.min,
+      // Fechas en que ocurrió el caso (vacío en las métricas que cuentan a todas las personas).
+      fechas: m.todos || sel.metrica === 'asistencia' ? '' : fechasCortas(ev.fechas),
       pctAsistencia: p.diasEsperados ? (p.presentes / p.diasEsperados) * 100 : null,
       fugaH: p.fugaMin / 60,
       hheeEjecH: p.teMin / 60,
@@ -2815,17 +2830,19 @@ function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFIG) {
   // Detalle por día (los eventos; en las métricas de personas, todos sus días), ordenado por fecha.
   const detalle = eventos
     .slice()
-    .sort((a, b) => (a.yyyymmdd < b.yyyymmdd ? -1 : a.yyyymmdd > b.yyyymmdd ? 1 : a.nombre.localeCompare(b.nombre)))
+    // Por persona y luego por fecha: así se leen juntos todos los días de cada trabajador.
+    .sort((a, b) => a.nombre.localeCompare(b.nombre) || a.keyId.localeCompare(b.keyId) || (a.yyyymmdd < b.yyyymmdd ? -1 : a.yyyymmdd > b.yyyymmdd ? 1 : 0))
     .slice(0, LIMITE_DETALLE)
     .map((r) => m.te
       ? {
-          fecha: fFecha(r.yyyymmdd), keyId: r.keyId, nombre: r.nombre, sucursal: r.sucursal, turno: r.turno,
+          fecha: fFecha(r.yyyymmdd), keyId: r.keyId, nombre: r.nombre, sucursal: r.sucursal, incidencia: m.titulo, turno: r.turno,
           ejecutadasH: +(r.teMin / 60).toFixed(2), aprobadasH: +(r.heaMin / 60).toFixed(2),
           cumplidasH: +(r.finalesMin / 60).toFixed(2), noReconocidasH: +(r.noReconocidasMin / 60).toFixed(2),
           conAsistencia: r.conAsistencia ? 'Sí' : 'No',
         }
       : {
           fecha: fFecha(r.yyyymmdd), dia: r.diaSemana, keyId: r.keyId, nombre: r.nombre, sucursal: r.sucursal,
+          incidencia: m.todos ? '' : m.titulo, minutos: m.min ? m.min(r) || 0 : '',
           estadoDia: r.estadoDia, tipoTurno: r.tipoTurno,
           turno: r.inicioTurno ? `${r.inicioTurno}–${r.finTurno}` : '',
           entrada: r.primeraEntrada, salida: r.ultimaSalida, marcas: r.patronMarcacion,
@@ -2849,7 +2866,158 @@ function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFIG) {
   };
 }
 
-return { calcKpis, clasificarMalla, filtrar, periodoAnterior, kpisPorGrupo, clavePeriodo, formatearPeriodo, calcHHEE, serieTemporal, puntosDe, turnoTipico, claveMalla, mallasDe, construirDashboard, construirDrill, METRICAS_DRILL };
+return { calcKpis, clasificarMalla, filtrar, periodoAnterior, kpisPorGrupo, clavePeriodo, formatearPeriodo, calcHHEE, serieTemporal, puntosDe, turnoTipico, claveMalla, mallasDe, construirDashboard, alcanceDrill, construirDrill, METRICAS_DRILL };
+});
+__def("registro", function(__require){
+// =============================================================================
+// registro.js
+// Registro de incidencias día por día: una fila por persona, día y tipo de
+// incidencia (qué días faltó, llegó tarde, no marcó…). Lo usan todas las
+// descargas a Excel para que, además de los conteos, traigan las fechas.
+// Funciones puras (corre en el worker).
+// =============================================================================
+
+const { filtrar } = __require("kpis");
+const { DEFAULT_CONFIG } = __require("config");
+
+const esIncompleta = (f) => f.nMarcaciones > 0 && !(typeof f.tipoMarcacion === 'string' && f.tipoMarcacion.startsWith('Completa'));
+const turnoDe = (f) => (f.inicioTurno ? `${f.inicioTurno}–${f.finTurno}` : '');
+// " (a, b)" con las partes que existan, o "" si no hay ninguna.
+const entreParentesis = (...partes) => { const p = partes.filter(Boolean); return p.length ? ` (${p.join(', ')})` : ''; };
+
+/**
+ * Tipos de incidencia, en el orden en que se listan. `pred` decide si el día
+ * la tiene; `min` da sus minutos; `detalle` la explica en una frase.
+ */
+const TIPOS_INCIDENCIA = [
+  {
+    id: 'falta', nombre: 'Falta injustificada',
+    pred: (f) => f.estadoDia === 'Falta injustificada',
+    detalle: (f) => `No asistió${turnoDe(f) ? ` a su turno ${turnoDe(f)}` : ''}${f.permiso && f.permiso !== 'Ninguno' ? ` (permiso: ${f.permiso})` : ''}`,
+  },
+  {
+    id: 'sinMarcacion', nombre: 'Sin marcación',
+    pred: (f) => f.estadoDia === 'Sin marcación',
+    detalle: (f) => `Tenía turno${turnoDe(f) ? ` ${turnoDe(f)}` : ''} y no registró ninguna marca`,
+  },
+  {
+    id: 'marcIncompleta', nombre: 'Marcación incompleta',
+    pred: esIncompleta,
+    detalle: (f) => `Registró ${f.nMarcaciones} de 4 marcas${f.patronMarcacion ? ` (${f.patronMarcacion})` : ''}`,
+  },
+  {
+    id: 'tardanza', nombre: 'Tardanza (E1)',
+    pred: (f) => f.tardanza === 1,
+    min: (f) => f.atrasoE1,
+    detalle: (f) => `Llegó ${f.atrasoE1} min tarde${entreParentesis(f.primeraEntrada && `entró ${f.primeraEntrada}`, f.inicioTurno && `turno desde ${f.inicioTurno}`)}`,
+  },
+  {
+    id: 'salida', nombre: 'Salida anticipada (S2)',
+    pred: (f) => f.adelantoS2 > 0,
+    min: (f) => f.adelantoS2,
+    detalle: (f) => `Salió ${f.adelantoS2} min antes${entreParentesis(f.ultimaSalida && `salió ${f.ultimaSalida}`, f.finTurno && `turno hasta ${f.finTurno}`)}`,
+  },
+  {
+    id: 'sinTurno', nombre: 'Trabajó sin turno',
+    pred: (f) => f.trabajoSinTurno === 1,
+    detalle: (f) => `Marcó${f.primeraEntrada ? ` de ${f.primeraEntrada} a ${f.ultimaSalida || '?'}` : ''} sin turno en la malla`,
+  },
+  {
+    id: 'descanso', nombre: 'Trabajó en descanso',
+    pred: (f) => f.estadoDia === 'Trabajó en descanso',
+    detalle: (f) => `Marcó en su día de descanso${f.primeraEntrada ? ` (${f.primeraEntrada}–${f.ultimaSalida || '?'})` : ''}`,
+  },
+  {
+    id: 'exceso', nombre: 'Exceso de refrigerio',
+    pred: (f, cfg) => f.excesoRefrigerioMin !== null && f.excesoRefrigerioMin > cfg.toleranciaRefrigerioMin,
+    min: (f) => f.excesoRefrigerioMin,
+    detalle: (f) => `Refrigerio ${f.excesoRefrigerioMin} min más largo que lo programado${f.refrigerioProgMin ? ` (${f.refrigerioProgMin} min)` : ''}`,
+  },
+];
+
+/** Columnas del registro (clave, título) para las hojas de Excel. */
+const COLS_REGISTRO = [
+  ['fecha', 'Fecha'], ['dia', 'Día'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'],
+  ['dashboard', 'Dashboard'], ['jefe', 'Jefe directo'], ['cargo', 'Cargo'],
+  ['incidencia', 'Incidencia'], ['minutos', 'Minutos'], ['detalle', 'Qué pasó'],
+  ['turno', 'Turno'], ['entrada', 'Primera entrada'], ['salida', 'Última salida'], ['marcas', 'Marcas (E1-S1-E2-S2)'],
+  ['estadoDia', 'Estado del día'], ['permiso', 'Permiso'], ['justificacion', 'Justificación registrada'],
+];
+
+const LIMITE_REGISTRO = 100000;
+
+const fFecha = (s) => (s && s.length === 8 ? `${s.slice(6, 8)}/${s.slice(4, 6)}/${s.slice(0, 4)}` : '');
+
+/** Una fila del registro para un día y un tipo de incidencia. */
+function filaRegistro(f, tipo, cfg = DEFAULT_CONFIG) {
+  return {
+    fecha: fFecha(f.yyyymmdd), dia: f.diaSemana || '', keyId: f.keyId, nombre: f.nombre, sucursal: f.sucursal,
+    dashboard: f.dashboard, jefe: f.jefe, cargo: f.cargoOficial,
+    incidencia: tipo.nombre, minutos: tipo.min ? tipo.min(f, cfg) || 0 : '', detalle: tipo.detalle(f, cfg),
+    turno: turnoDe(f), entrada: f.primeraEntrada || '', salida: f.ultimaSalida || '', marcas: f.patronMarcacion || '',
+    estadoDia: f.estadoDia || '', permiso: f.permiso || '', justificacion: f.justificacionRegistrada || '',
+  };
+}
+
+/**
+ * Registro de incidencias del filtro, ordenado por persona y fecha.
+ * @param {object[]} filas  filas persona-día del modelo
+ * @param {object} filtros  filtros del tablero (dashboard '' = Tienda + Logística)
+ * @param {object} cfg
+ * @param {object} [opc]    { keyIds?: string[] (solo estas personas), tipos?: string[] (ids de TIPOS_INCIDENCIA) }
+ * @returns {{ filas: object[], total: number, truncado: boolean, porTipo: object[] }}
+ */
+function registroIncidencias(filas, filtros = {}, cfg = DEFAULT_CONFIG, opc = {}) {
+  const solo = opc.keyIds ? new Set(opc.keyIds) : null;
+  const tipos = opc.tipos ? TIPOS_INCIDENCIA.filter((t) => opc.tipos.includes(t.id)) : TIPOS_INCIDENCIA;
+  const base = filtrar(filas, filtros).filter((f) =>
+    (filtros.dashboard || f.dashboard === 'Tienda' || f.dashboard === 'Logística') && (!solo || solo.has(f.keyId)));
+  const eventos = [];
+  const cuenta = new Map(tipos.map((t) => [t.nombre, { incidencia: t.nombre, dias: 0, personas: new Set() }]));
+  for (const f of base) {
+    for (const t of tipos) {
+      if (!t.pred(f, cfg)) continue;
+      eventos.push([f, t]);
+      const c = cuenta.get(t.nombre);
+      c.dias++;
+      c.personas.add(f.keyId);
+    }
+  }
+  eventos.sort(([a, ta], [b, tb]) =>
+    a.nombre.localeCompare(b.nombre) || a.keyId.localeCompare(b.keyId) ||
+    (a.yyyymmdd < b.yyyymmdd ? -1 : a.yyyymmdd > b.yyyymmdd ? 1 : 0) ||
+    tipos.indexOf(ta) - tipos.indexOf(tb));
+  return {
+    filas: eventos.slice(0, LIMITE_REGISTRO).map(([f, t]) => filaRegistro(f, t, cfg)),
+    total: eventos.length,
+    truncado: eventos.length > LIMITE_REGISTRO,
+    porTipo: [...cuenta.values()].map((c) => ({ incidencia: c.incidencia, dias: c.dias, personas: c.personas.size })),
+  };
+}
+
+/**
+ * Resumen de fechas por persona: "Falta injustificada: 02/09, 04/09 · Tardanza (E1): 01/09".
+ * @returns {Map<string,string>} keyId -> texto
+ */
+function fechasPorPersona(registro) {
+  const per = new Map();
+  for (const r of registro) {
+    if (!per.has(r.keyId)) per.set(r.keyId, new Map());
+    const m = per.get(r.keyId);
+    if (!m.has(r.incidencia)) m.set(r.incidencia, []);
+    m.get(r.incidencia).push(r.fecha.slice(0, 5));
+  }
+  const out = new Map();
+  for (const [k, m] of per) out.set(k, [...m].map(([t, fs]) => `${t}: ${listaFechas(fs)}`).join(' · '));
+  return out;
+}
+
+/** "01/09, 02/09, 05/09" (con tope, para que la celda siga siendo legible). */
+function listaFechas(fechas, max = 40) {
+  return fechas.length > max ? `${fechas.slice(0, max).join(', ')} … y ${fechas.length - max} más` : fechas.join(', ');
+}
+
+return { filaRegistro, registroIncidencias, fechasPorPersona, listaFechas, TIPOS_INCIDENCIA, COLS_REGISTRO, LIMITE_REGISTRO };
 });
 __def("quality", function(__require){
 // =============================================================================
@@ -3416,7 +3584,8 @@ const { esAsistencia, parseAsistencia } = __require("parsers/asistencia");
 const { esTiempoExtra, parseTiempoExtra } = __require("parsers/tiempoExtra");
 const { construirModelo } = __require("model");
 const { calcularCalidad } = __require("quality");
-const { construirDashboard, construirDrill, filtrar } = __require("kpis");
+const { construirDashboard, construirDrill, alcanceDrill, filtrar } = __require("kpis");
+const { registroIncidencias, fechasPorPersona, COLS_REGISTRO } = __require("registro");
 const { construirComplementarios } = __require("complementarios");
 const { construirAlertas } = __require("alerts");
 const { DEFAULT_CONFIG } = __require("config");
@@ -3490,6 +3659,14 @@ async function manejar(msg) {
       return construirDashboard(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG, MODELO.teFilas);
     case 'drill':
       return construirDrill(MODELO.filas, MODELO.teFilas, msg.filtros || {}, msg.sel || {}, msg.cfg || DEFAULT_CONFIG);
+    case 'registro': {
+      // Registro día por día de incidencias (para las descargas a Excel).
+      const filtros = msg.filtros || {};
+      const filas = msg.sel ? MODELO.filas.filter(alcanceDrill(msg.sel, filtros)) : MODELO.filas;
+      const reg = registroIncidencias(filas, filtros, msg.cfg || DEFAULT_CONFIG, { keyIds: msg.keyIds, tipos: msg.tipos });
+      // columnas: [clave, título]; fechas: keyId -> "Falta injustificada: 02/09, 04/09 · …"
+      return { ...reg, columnas: COLS_REGISTRO, fechas: Object.fromEntries(fechasPorPersona(reg.filas)) };
+    }
     case 'complementarios':
       return construirComplementarios(MODELO.filas, msg.filtros || {}, msg.cfg || DEFAULT_CONFIG);
     case 'alertas':
@@ -4446,6 +4623,11 @@ async function exportarExcelHojas(nombreArchivo, hojas) {
     const head = h.titulos || h.columnas;
     const aoa = [head, ...h.filas.map((f) => h.columnas.map((c) => f[c] ?? ''))];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // Ancho de columnas según el contenido (tope 60) y filtro en la cabecera.
+    ws['!cols'] = head.map((_, c) => ({
+      wch: Math.min(60, Math.max(8, ...aoa.slice(0, 500).map((r) => String(r[c] ?? '').length + 2))),
+    }));
+    if (aoa.length > 1 && head.length) ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: aoa.length - 1, c: head.length - 1 } }) };
     // Nombre de hoja válido (<=31 chars, sin caracteres prohibidos, único).
     let nom = String(h.nombre || 'Hoja').replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || 'Hoja';
     let i = 2;
@@ -4464,8 +4646,9 @@ async function exportarExcelHojas(nombreArchivo, hojas) {
  * @param {string[]} columnas
  * @param {object[]} filas
  * @param {string[]} [titulos]
+ * @param {object[]} [hojasExtra] hojas que se agregan al final (mismo formato que exportarExcelHojas)
  */
-async function exportarExcelPorGrupo(nombreArchivo, campoGrupo, columnas, filas, titulos) {
+async function exportarExcelPorGrupo(nombreArchivo, campoGrupo, columnas, filas, titulos, hojasExtra = []) {
   const grupos = new Map();
   for (const f of filas) {
     const k = f[campoGrupo] || '(sin dato)';
@@ -4475,7 +4658,7 @@ async function exportarExcelPorGrupo(nombreArchivo, campoGrupo, columnas, filas,
   const hojas = [...grupos.entries()]
     .sort((a, b) => b[1].length - a[1].length)
     .map(([k, arr]) => ({ nombre: k, columnas, titulos, filas: arr }));
-  await exportarExcelHojas(nombreArchivo, hojas);
+  await exportarExcelHojas(nombreArchivo, [...hojas, ...hojasExtra]);
 }
 
 /** Exporta a CSV (separador coma, con BOM para Excel es-PE). */
@@ -4502,7 +4685,23 @@ function descargar(blob, nombre) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-return { exportarExcel, exportarExcelHojas, exportarExcelPorGrupo, exportarCSV };
+/**
+ * Hoja "registro de incidencias" a partir de la respuesta del worker
+ * ('registro'): una fila por persona, día e incidencia.
+ */
+function hojaRegistro(reg, nombre = 'Registro de incidencias') {
+  const filas = reg.truncado
+    ? [...reg.filas, { fecha: `Se muestran ${reg.filas.length} de ${reg.total} filas; acota el filtro para ver el resto.` }]
+    : reg.filas;
+  return { nombre, columnas: reg.columnas.map((c) => c[0]), titulos: reg.columnas.map((c) => c[1]), filas };
+}
+
+/** Hoja con el conteo de días y personas por tipo de incidencia. */
+function hojaResumenIncidencias(reg, nombre = 'Incidencias por tipo') {
+  return { nombre, columnas: ['incidencia', 'dias', 'personas'], titulos: ['Incidencia', 'Días', 'Personas'], filas: reg.porTipo };
+}
+
+return { exportarExcel, exportarExcelHojas, exportarExcelPorGrupo, exportarCSV, hojaRegistro, hojaResumenIncidencias };
 });
 __def("historico", function(__require){
 // =============================================================================
@@ -4562,7 +4761,21 @@ function compararCortes(actual, anterior) {
     );
   };
 
-  return { resumen, porSucursal: agg('s'), porJefe: agg('j') };
+  // Detalle día por día: qué incidencia, de quién, qué día y en qué estado quedó.
+  const fila = (i, estado) => {
+    const [keyId, ymd] = String(i.k).split('|');
+    return {
+      estado, keyId, fecha: ymd && ymd.length === 8 ? `${ymd.slice(6, 8)}/${ymd.slice(4, 6)}/${ymd.slice(0, 4)}` : '',
+      orden: ymd || '', incidencia: i.t, sucursal: i.s, jefe: i.j, dashboard: i.d,
+    };
+  };
+  const detalle = [
+    ...nuevas.map((i) => fila(i, 'Nueva')),
+    ...pendientes.map((i) => fila(i, 'Pendiente')),
+    ...regularizadas.map((i) => fila(i, 'Regularizada')),
+  ].sort((x, y) => x.keyId.localeCompare(y.keyId) || x.orden.localeCompare(y.orden) || x.incidencia.localeCompare(y.incidencia));
+
+  return { resumen, porSucursal: agg('s'), porJefe: agg('j'), detalle };
 }
 
 /**
@@ -4603,7 +4816,7 @@ __def("dashboards", function(__require){
 const { fmtMiles, fmtPct, fmtHoras, fmtDec1 } = __require("config");
 const charts = __require("charts");
 const { T } = __require("charts");
-const { exportarCSV, exportarExcelHojas } = __require("exports");
+const { exportarCSV, exportarExcelHojas, hojaRegistro, hojaResumenIncidencias } = __require("exports");
 const { icon, help } = __require("icons");
 
 // Color de interfaz (campo de cabecera, acciones) y color de dato (marcas de
@@ -4685,14 +4898,14 @@ const GRAF = {
   fuga: {
     titulo: 'Fuga de tiempo por sucursal', sub: 'Horas perdidas por tardanzas y por salidas anticipadas', tipo: 'apiladas',
     formula: 'Σ atraso E1 (tardanzas) + Σ adelanto S2 (salidas anticipadas), en horas.',
-    datos: (d) => d.graficos.fuga, sufijo: ' h',
+    datos: (d) => d.graficos.fuga, sufijo: ' h', metricaReporte: 'fuga',
     series: [{ key: 'a', nombre: 'Tardanzas', color: T.s1, metrica: 'tardanzas' }, { key: 'b', nombre: 'Salidas anticipadas', color: T.s2, metrica: 'salidas' }],
     cols: [['sucursal', 'Sucursal', 'txt'], ['a', 'Tardanzas (h)', 'h'], ['b', 'Salidas anticipadas (h)', 'h']],
   },
   justHoras: {
     titulo: 'Horas justificadas por sucursal', sub: 'Atrasos de ingreso y adelantos de salida justificados', tipo: 'apiladas',
     formula: 'Σ minutos de atraso justificado y Σ minutos de salida justificada, en horas.',
-    datos: (d) => d.graficos.justHoras, sufijo: ' h',
+    datos: (d) => d.graficos.justHoras, sufijo: ' h', metricaReporte: 'justificaciones',
     series: [{ key: 'a', nombre: 'Atrasos justificados', color: T.s1, metrica: 'justAtraso' }, { key: 'b', nombre: 'Salidas justificadas', color: T.s2, metrica: 'justSalida' }],
     cols: [['sucursal', 'Sucursal', 'txt'], ['a', 'Atrasos (h)', 'h'], ['b', 'Salidas (h)', 'h']],
   },
@@ -5119,7 +5332,7 @@ function crearDashboards({ callWorker, getCfg }) {
             <button type="button" data-modo="grafico" aria-pressed="${v.modo === 'grafico'}" class="${v.modo === 'grafico' ? 'activo' : ''}" title="Ver como gráfico">${icon('barras')}<span class="sr">Gráfico</span></button>
             <button type="button" data-modo="tabla" aria-pressed="${v.modo === 'tabla'}" class="${v.modo === 'tabla' ? 'activo' : ''}" title="Ver como tabla">${icon('tabla')}<span class="sr">Tabla</span></button>
           </div>
-          <button type="button" class="btn-icono" data-export="${key}" title="Descargar estos datos (CSV)">${icon('download')}<span class="sr">Descargar</span></button>
+          <button type="button" class="btn-icono" data-export="${key}" title="Descargar Excel: datos del gráfico, trabajadores y sus días">${icon('download')}<span class="sr">Descargar Excel</span></button>
         </div>`}
       </header>
       ${vacio ? '<p class="vacio">Sin casos en el filtro actual.</p>' : `
@@ -5625,6 +5838,7 @@ function crearDashboards({ callWorker, getCfg }) {
     const { dashboard, sel, res } = ds;
     const capa = contenedor(dashboard).querySelector('[data-drawer]');
     const cols = columnasDrill(res);
+    if (!esTodos(res) && res.personas.some((p) => p.fechas)) cols.splice(3, 0, ['fechas', 'Fechas', 'fechas']);
     let filas = res.personas;
     if (ds.q) {
       const q = ds.q.toLowerCase();
@@ -5665,13 +5879,13 @@ function crearDashboards({ callWorker, getCfg }) {
         </div>
         <div class="drawer-body">
           ${total ? `<table class="tabla tabla-drawer">
-            <thead><tr>${cols.map(([k, l, t]) => `<th class="${t !== 'txt' && t !== 'persona' ? 'num' : ''}"><button type="button" class="th-orden" data-dorden="${k}">${esc(l)}${ds.orden && ds.orden[0] === k ? icon(ds.orden[1] === -1 ? 'down' : 'up', 'ico-xs') : ''}</button></th>`).join('')}</tr></thead>
+            <thead><tr>${cols.map(([k, l, t]) => `<th class="${t !== 'txt' && t !== 'persona' && t !== 'fechas' ? 'num' : ''}"><button type="button" class="th-orden" data-dorden="${k}">${esc(l)}${ds.orden && ds.orden[0] === k ? icon(ds.orden[1] === -1 ? 'down' : 'up', 'ico-xs') : ''}</button></th>`).join('')}</tr></thead>
             <tbody>${vis.map((p) => `<tr>${cols.map(([k, , t]) => celda(p, k, t)).join('')}</tr>`).join('')}</tbody>
           </table>${total > MAX ? `<p class="nota">Se muestran ${fmtMiles(MAX)} de ${fmtMiles(total)} personas; el Excel y el CSV las incluyen todas.</p>` : ''}`
           : '<p class="vacio">No hay trabajadores con este caso en el filtro.</p>'}
         </div>
         <footer class="drawer-pie">
-          <p class="nota">El Excel trae tres hojas: <b>Trabajadores</b> (toda su información), <b>Detalle por día</b>${res.detalle.length ? ` (${fmtMiles(res.detalle.length)} filas${res.truncado ? ', recortado a 20.000' : ''})` : ''} y <b>Filtro</b> (lo que se aplicó).</p>
+          <p class="nota">El Excel trae <b>Trabajadores</b> (su información y las fechas de cada caso), <b>Días</b> (una fila por persona y día${res.detalle.length ? `: ${fmtMiles(res.detalle.length)} filas${res.truncado ? ', recortado a 20.000' : ''}` : ''}), <b>Todas las incidencias</b> de esas personas día por día y <b>Filtro</b>.</p>
         </footer>
       </aside>`;
     const drawer = capa.querySelector('.drawer');
@@ -5735,13 +5949,14 @@ function crearDashboards({ callWorker, getCfg }) {
     ['hheeEjecH', 'HHEE ejecutadas (h)'], ['hheeAprobH', 'HHEE aprobadas (h)'], ['hheeCumplH', 'HHEE reconocidas (h)'], ['hheeNoRecH', 'HHEE no reconocidas (h)'], ['desviacionH', 'Brecha HHEE (h)'],
   ];
   const COLS_DIA = [
-    ['fecha', 'Fecha'], ['dia', 'Día'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['estadoDia', 'Estado del día'], ['tipoTurno', 'Tipo de turno'],
+    ['fecha', 'Fecha'], ['dia', 'Día'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['incidencia', 'Caso'], ['minutos', 'Minutos del caso'],
+    ['estadoDia', 'Estado del día'], ['tipoTurno', 'Tipo de turno'],
     ['turno', 'Turno'], ['entrada', 'Primera entrada'], ['salida', 'Última salida'], ['marcas', 'Marcas (E1-S1-E2-S2)'],
     ['atrasoE1', 'Atraso E1 (min)'], ['adelantoS1', 'Adelanto S1 (min)'], ['atrasoE2', 'Atraso E2 (min)'], ['adelantoS2', 'Adelanto S2 (min)'],
     ['fugaMin', 'Fuga (min)'], ['permiso', 'Permiso'], ['justificacion', 'Justificación registrada'],
   ];
   const COLS_DIA_TE = [
-    ['fecha', 'Fecha'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['turno', 'Turno'],
+    ['fecha', 'Fecha'], ['keyId', 'DNI / CE'], ['nombre', 'Nombre'], ['sucursal', 'Sucursal'], ['incidencia', 'Caso'], ['turno', 'Turno'],
     ['ejecutadasH', 'Ejecutadas (h)'], ['aprobadasH', 'Aprobadas (h)'], ['cumplidasH', 'Reconocidas (h)'], ['noReconocidasH', 'No reconocidas (h)'], ['conAsistencia', 'Con fila de asistencia'],
   ];
 
@@ -5749,11 +5964,29 @@ function crearDashboards({ callWorker, getCfg }) {
     const ds = drawerEstado;
     if (!ds) return;
     const { dashboard, sel, res } = ds;
-    const r2 = (v) => (typeof v === 'number' ? +v.toFixed(2) : v ?? '');
-    const personas = res.personas.map((p) => Object.fromEntries(COLS_PERSONA.map(([k]) => [k, r2(p[k])])));
     const base = `Trabajadores_${slug(res.titulo)}${sel.sucursal ? '_' + slug(sel.sucursal) : ''}${sel.malla ? '_malla_' + slug(sel.malla.split('|')[0]) : ''}_${hoy()}`;
+    return descargarReporte(dashboard, sel, res, base, formato);
+  }
+
+  /**
+   * Reporte de trabajadores de una selección. Excel con:
+   *  - Trabajadores: su información, los indicadores y las fechas del caso.
+   *  - Días: <caso>: una fila por persona y día del caso (p. ej. cada falta).
+   *  - Todas las incidencias: el registro día por día de todo lo demás que tuvo
+   *    cada una de esas personas en el mismo alcance.
+   *  - Filtro: lo que estaba aplicado.
+   * El CSV lleva la hoja Trabajadores con las fechas.
+   */
+  async function descargarReporte(dashboard, sel, res, base, formato, hojasPrevias = []) {
+    const reg = await callWorker('registro', {
+      filtros: estado[dashboard], cfg: getCfg(), sel: { ...sel, metrica: undefined },
+      keyIds: res.personas.map((p) => p.keyId),
+    });
+    const r2 = (v) => (typeof v === 'number' ? +v.toFixed(2) : v ?? '');
+    const cols = colsPersona(res);
+    const personas = res.personas.map((p) => Object.fromEntries(cols.map(([k]) => [k, k === 'incidenciasFechas' ? reg.fechas[p.keyId] || '' : r2(p[k])])));
     if (formato === 'csv') {
-      exportarCSV(base, COLS_PERSONA.map((c) => c[0]), personas, COLS_PERSONA.map((c) => c[1]));
+      exportarCSV(base, cols.map((c) => c[0]), personas, cols.map((c) => c[1]));
       return;
     }
     const colsDia = res.esTE ? COLS_DIA_TE : COLS_DIA;
@@ -5774,23 +6007,52 @@ function crearDashboards({ callWorker, getCfg }) {
       { campo: 'Casos', valor: res.resumen.eventos },
       { campo: 'Generado', valor: new Date().toLocaleString('es-PE') },
     ];
-    exportarExcelHojas(base, [
-      { nombre: 'Trabajadores', columnas: COLS_PERSONA.map((c) => c[0]), titulos: COLS_PERSONA.map((c) => c[1]), filas: personas },
-      { nombre: 'Detalle por día', columnas: colsDia.map((c) => c[0]), titulos: colsDia.map((c) => c[1]), filas: res.detalle },
+    const detalle = res.truncado ? [...res.detalle, { fecha: `Se muestran ${res.detalle.length} filas; acota el filtro para ver el resto.` }] : res.detalle;
+    await exportarExcelHojas(base, [
+      ...hojasPrevias,
+      { nombre: 'Trabajadores', columnas: cols.map((c) => c[0]), titulos: cols.map((c) => c[1]), filas: personas },
+      { nombre: res.detalle.length && !esTodos(res) ? `Días - ${res.titulo}` : 'Registro por día', columnas: colsDia.map((c) => c[0]), titulos: colsDia.map((c) => c[1]), filas: detalle },
+      hojaRegistro(reg, 'Todas las incidencias'),
+      hojaResumenIncidencias(reg),
       { nombre: 'Filtro', columnas: ['campo', 'valor'], titulos: ['Campo', 'Valor'], filas: filtro },
     ]);
   }
+  // Métricas que cuentan a todas las personas (su "detalle" son todos sus días).
+  function esTodos(res) { return ['personas', 'fiscalizables', 'noFiscalizables', 'asistencia'].includes(res.sel.metrica); }
+  function colsPersona(res) {
+    const cols = [...COLS_PERSONA];
+    const i = cols.findIndex((c) => c[0] === 'minEvento') + 1;
+    if (!esTodos(res)) cols.splice(i, 0, ['fechas', `Fechas: ${res.titulo}`]);
+    cols.push(['incidenciasFechas', 'Todas sus incidencias por fecha']);
+    return cols;
+  }
 
   // ---- Exportaciones de gráficos y de la matriz ----------------------------------
-  function exportarGrafico(dashboard, key) {
+  // Descarga de un gráfico: sus datos por sucursal + el reporte de los
+  // trabajadores detrás (con las fechas de cada caso).
+  async function exportarGrafico(dashboard, key) {
     const g = GRAF[key];
     const data = ultData[dashboard];
     if (!g || !data) return;
     const arr = g.datos(data) || [];
-    exportarCSV(`${slug(g.titulo)}_${slug(NOMBRE[dashboard])}_${hoy()}`, g.cols.map((c) => c[0]),
-      arr.map((x) => Object.fromEntries(g.cols.map(([k]) => [k, typeof x[k] === 'number' ? +x[k].toFixed(2) : x[k]]))), g.cols.map((c) => c[1]));
+    const hojaDatos = {
+      nombre: 'Datos del gráfico', columnas: g.cols.map((c) => c[0]), titulos: g.cols.map((c) => c[1]),
+      filas: arr.map((x) => Object.fromEntries(g.cols.map(([k]) => [k, typeof x[k] === 'number' ? +x[k].toFixed(2) : x[k]]))),
+    };
+    const sel = { metrica: g.metrica || g.metricaReporte };
+    toastVista(dashboard, 'Preparando el Excel con los trabajadores y sus días…');
+    const res = await callWorker('drill', { filtros: estado[dashboard], sel, cfg: getCfg() });
+    await descargarReporte(dashboard, sel, res, `${slug(g.titulo)}_${slug(NOMBRE[dashboard])}_${hoy()}`, 'excel', [hojaDatos]);
   }
-  function exportarMatriz(dashboard, formato) {
+  function toastVista(dashboard, msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'toast visible ok';
+    clearTimeout(toastVista.timer);
+    toastVista.timer = setTimeout(() => (t.className = 'toast'), 2500);
+  }
+  async function exportarMatriz(dashboard, formato) {
     const data = ultData[dashboard];
     const cols = [
       ['sucursal', 'Sucursal'], ['personas', 'Personas'], ['fiscalizables', 'Fiscalizables'], ['pctAsistencia', '% asistencia'], ['sumPresente', 'Días presentes'],
@@ -5802,7 +6064,16 @@ function crearDashboards({ callWorker, getCfg }) {
     ];
     const filas = data.porSucursal.map((s) => Object.fromEntries(cols.map(([k]) => [k, typeof s[k] === 'number' ? +s[k].toFixed(2) : s[k]])));
     const nombre = `Sucursales_${slug(NOMBRE[dashboard])}_${hoy()}`;
-    if (formato === 'excel') exportarExcelHojas(nombre, [{ nombre: 'Sucursales', columnas: cols.map((c) => c[0]), titulos: cols.map((c) => c[1]), filas }]);
+    if (formato === 'excel') {
+      // Además del resumen por sucursal, el registro día por día de cada incidencia.
+      toastVista(dashboard, 'Preparando el Excel con el registro de incidencias…');
+      const reg = await callWorker('registro', { filtros: estado[dashboard], cfg: getCfg() });
+      await exportarExcelHojas(nombre, [
+        { nombre: 'Sucursales', columnas: cols.map((c) => c[0]), titulos: cols.map((c) => c[1]), filas },
+        hojaResumenIncidencias(reg),
+        hojaRegistro(reg),
+      ]);
+    }
     else exportarCSV(nombre, cols.map((c) => c[0]), filas, cols.map((c) => c[1]));
   }
 
@@ -5884,6 +6155,7 @@ function celda(p, k, t) {
   const v = p[k];
   if (t === 'persona') return `<td><b>${esc(p.nombre)}</b><small>${esc(p.keyId)}${p.cargo ? ' · ' + esc(p.cargo) : ''}</small></td>`;
   if (t === 'txt') return `<td>${esc(v)}</td>`;
+  if (t === 'fechas') return `<td class="td-fechas">${esc(v)}</td>`;
   if (v === null || v === undefined) return '<td class="num">—</td>';
   if (t === 'pct') return `<td class="num">${fmtPct(v)}</td>`;
   if (t === 'h') return `<td class="num">${fmtHoras(v)}</td>`;
@@ -5936,7 +6208,7 @@ __def("panels", function(__require){
 // =============================================================================
 
 const { fmtMiles, fmtPct, fmtDec1 } = __require("config");
-const { exportarCSV, exportarExcelHojas, exportarExcelPorGrupo } = __require("exports");
+const { exportarCSV, exportarExcelHojas, exportarExcelPorGrupo, hojaRegistro, hojaResumenIncidencias } = __require("exports");
 const { icon, help } = __require("icons");
 
 // Columnas de los cortes por segmento (las 12 métricas).
@@ -6055,7 +6327,9 @@ function crearPaneles({ callWorker, getCfg }) {
       { nombre: 'Permisos', columnas: ['categoria', 'dias', 'personas'], titulos: ['Categoría', 'Días', 'Personas'], filas: ultComp.permisos },
       { nombre: 'Feriados', columnas: ['calendario', 'diasFeriado', 'feriadosTrabajados', 'personas'], titulos: ['Calendario', 'Días feriado', 'Feriados trabajados', 'Personas'], filas: ultComp.feriados },
     ];
-    await exportarExcelHojas(`Complementarios_${hoy()}`, hojas);
+    // Registro día por día de las incidencias del mismo filtro.
+    const reg = await callWorker('registro', { filtros: estComp, cfg: getCfg() });
+    await exportarExcelHojas(`Complementarios_${hoy()}`, [...hojas, hojaResumenIncidencias(reg), hojaRegistro(reg)]);
   }
 
   // ---- Alertas -------------------------------------------------------------
@@ -6065,8 +6339,9 @@ function crearPaneles({ callWorker, getCfg }) {
     cont.innerHTML = `
       <header class="vista-head"><h1>Alertas por persona</h1>
         <div class="acciones">
-          <button class="btn btn-sec" data-exp-csv>${icon('download')}<span>Exportar CSV</span></button>
-          <button class="btn" data-exp-jefe>${icon('download')}<span>Por jefe (Excel)</span></button>
+          <button class="btn btn-sec" data-exp-csv>${icon('download')}<span>CSV</span></button>
+          <button class="btn btn-sec" data-exp-jefe>${icon('download')}<span>Excel por jefe</span></button>
+          <button class="btn" data-exp-xls>${icon('download')}<span>Excel con registro</span></button>
         </div>
       </header>
       <div class="filtros" data-filtros></div>
@@ -6076,6 +6351,7 @@ function crearPaneles({ callWorker, getCfg }) {
     cablearFiltrosSimples(cont, estAlerta, () => actualizarAlertas(cont), true);
     cont.querySelector('[data-exp-csv]').addEventListener('click', exportarAlertasCSV);
     cont.querySelector('[data-exp-jefe]').addEventListener('click', exportarAlertasPorJefe);
+    cont.querySelector('[data-exp-xls]').addEventListener('click', exportarAlertasExcel);
     const buscar = cont.querySelector('[data-buscar]');
     buscar.addEventListener('input', () => pintarTablaAlertas(cont, buscar.value));
     await actualizarAlertas(cont);
@@ -6129,17 +6405,43 @@ function crearPaneles({ callWorker, getCfg }) {
     return `<td>${esc(a[c.key])}</td>`;
   }
 
-  function exportarAlertasCSV() {
+  // Registro día por día de las incidencias que cuentan para las alertas,
+  // solo de las personas con alerta.
+  const TIPOS_ALERTA = ['falta', 'sinMarcacion', 'marcIncompleta', 'tardanza', 'descanso', 'sinTurno', 'exceso'];
+  async function registroAlertas() {
+    const { escala, escalaModo, ...filtros } = estAlerta;
+    return callWorker('registro', { filtros, cfg: getCfg(), keyIds: ultAlerta.alertas.map((a) => a.keyId), tipos: TIPOS_ALERTA });
+  }
+  // Columnas de alertas + "Fechas de las incidencias" (qué días fue cada una).
+  function alertasConFechas(reg, sinJefe = false) {
+    const cols = COLS_ALERTA.filter((c) => !(sinJefe && c.key === 'jefe'));
+    return {
+      columnas: [...cols.map((c) => c.key), 'fechas'],
+      titulos: [...cols.map((c) => c.label), 'Fechas de las incidencias'],
+      filas: ultAlerta.alertas.map((a) => ({ ...a, fechas: reg.fechas[a.keyId] || '' })),
+    };
+  }
+
+  async function exportarAlertasCSV() {
     if (!ultAlerta) return;
-    const cols = COLS_ALERTA.map((c) => c.key);
-    const tit = COLS_ALERTA.map((c) => c.label);
-    exportarCSV(`Alertas_${hoy()}`, cols, ultAlerta.alertas, tit);
+    const t = alertasConFechas(await registroAlertas());
+    exportarCSV(`Alertas_${hoy()}`, t.columnas, t.filas, t.titulos);
+  }
+  async function exportarAlertasExcel() {
+    if (!ultAlerta) return;
+    const reg = await registroAlertas();
+    const t = alertasConFechas(reg);
+    await exportarExcelHojas(`Alertas_${hoy()}`, [
+      { nombre: 'Alertas', ...t },
+      hojaRegistro(reg),
+      hojaResumenIncidencias(reg),
+    ]);
   }
   async function exportarAlertasPorJefe() {
     if (!ultAlerta) return;
-    const cols = COLS_ALERTA.filter((c) => c.key !== 'jefe').map((c) => c.key);
-    const tit = COLS_ALERTA.filter((c) => c.key !== 'jefe').map((c) => c.label);
-    await exportarExcelPorGrupo(`Alertas_por_jefe_${hoy()}`, 'jefe', cols, ultAlerta.alertas, tit);
+    const reg = await registroAlertas();
+    const t = alertasConFechas(reg, true);
+    await exportarExcelPorGrupo(`Alertas_por_jefe_${hoy()}`, 'jefe', t.columnas, t.filas, t.titulos, [hojaRegistro(reg)]);
   }
 
   // ---- Barra de filtros simple (compartida) --------------------------------
@@ -6672,6 +6974,12 @@ function exportarHistorico(cortes) {
     { nombre: 'Cortes', columnas: ['fecha', 'tipo', 'actuales', 'nuevas', 'pendientes', 'regularizadas', 'pctRegularizacion'], titulos: ['Fecha', 'Tipo', 'Actuales', 'Nuevas', 'Pendientes', 'Regularizadas', '% Regularización'], filas: resumen },
     { nombre: 'Por sucursal', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Sucursal', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porSucursal },
     { nombre: 'Por jefe', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Jefe', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porJefe },
+    {
+      nombre: 'Detalle último corte',
+      columnas: ['keyId', 'fecha', 'incidencia', 'estado', 'sucursal', 'jefe', 'dashboard'],
+      titulos: ['DNI / CE', 'Fecha', 'Incidencia', 'Estado vs. corte anterior', 'Sucursal', 'Jefe directo', 'Dashboard'],
+      filas: cmp.detalle,
+    },
   ];
   exportarExcelHojas(`Historico_${new Date().toISOString().slice(0, 10)}`, hojas);
 }

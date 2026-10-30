@@ -20,7 +20,7 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const MAIN = ['config', 'icons', 'storage', 'charts', 'exports', 'historico', 'dashboards', 'panels', 'app'];
 const WORKER = [
   'config', 'parsers/common', 'parsers/dotacion', 'parsers/asistencia',
-  'parsers/tiempoExtra', 'model', 'kpis', 'quality', 'complementarios', 'alerts', 'worker',
+  'parsers/tiempoExtra', 'model', 'kpis', 'registro', 'quality', 'complementarios', 'alerts', 'worker',
 ];
 
 // Módulos "vendor" que se resuelven a un global (no se transforman).

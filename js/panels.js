@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { fmtMiles, fmtPct, fmtDec1 } from './config.js';
-import { exportarCSV, exportarExcelHojas, exportarExcelPorGrupo } from './exports.js';
+import { exportarCSV, exportarExcelHojas, exportarExcelPorGrupo, hojaRegistro, hojaResumenIncidencias } from './exports.js';
 import { icon, help } from './icons.js';
 
 // Columnas de los cortes por segmento (las 12 métricas).
@@ -124,7 +124,9 @@ export function crearPaneles({ callWorker, getCfg }) {
       { nombre: 'Permisos', columnas: ['categoria', 'dias', 'personas'], titulos: ['Categoría', 'Días', 'Personas'], filas: ultComp.permisos },
       { nombre: 'Feriados', columnas: ['calendario', 'diasFeriado', 'feriadosTrabajados', 'personas'], titulos: ['Calendario', 'Días feriado', 'Feriados trabajados', 'Personas'], filas: ultComp.feriados },
     ];
-    await exportarExcelHojas(`Complementarios_${hoy()}`, hojas);
+    // Registro día por día de las incidencias del mismo filtro.
+    const reg = await callWorker('registro', { filtros: estComp, cfg: getCfg() });
+    await exportarExcelHojas(`Complementarios_${hoy()}`, [...hojas, hojaResumenIncidencias(reg), hojaRegistro(reg)]);
   }
 
   // ---- Alertas -------------------------------------------------------------
@@ -134,8 +136,9 @@ export function crearPaneles({ callWorker, getCfg }) {
     cont.innerHTML = `
       <header class="vista-head"><h1>Alertas por persona</h1>
         <div class="acciones">
-          <button class="btn btn-sec" data-exp-csv>${icon('download')}<span>Exportar CSV</span></button>
-          <button class="btn" data-exp-jefe>${icon('download')}<span>Por jefe (Excel)</span></button>
+          <button class="btn btn-sec" data-exp-csv>${icon('download')}<span>CSV</span></button>
+          <button class="btn btn-sec" data-exp-jefe>${icon('download')}<span>Excel por jefe</span></button>
+          <button class="btn" data-exp-xls>${icon('download')}<span>Excel con registro</span></button>
         </div>
       </header>
       <div class="filtros" data-filtros></div>
@@ -145,6 +148,7 @@ export function crearPaneles({ callWorker, getCfg }) {
     cablearFiltrosSimples(cont, estAlerta, () => actualizarAlertas(cont), true);
     cont.querySelector('[data-exp-csv]').addEventListener('click', exportarAlertasCSV);
     cont.querySelector('[data-exp-jefe]').addEventListener('click', exportarAlertasPorJefe);
+    cont.querySelector('[data-exp-xls]').addEventListener('click', exportarAlertasExcel);
     const buscar = cont.querySelector('[data-buscar]');
     buscar.addEventListener('input', () => pintarTablaAlertas(cont, buscar.value));
     await actualizarAlertas(cont);
@@ -198,17 +202,43 @@ export function crearPaneles({ callWorker, getCfg }) {
     return `<td>${esc(a[c.key])}</td>`;
   }
 
-  function exportarAlertasCSV() {
+  // Registro día por día de las incidencias que cuentan para las alertas,
+  // solo de las personas con alerta.
+  const TIPOS_ALERTA = ['falta', 'sinMarcacion', 'marcIncompleta', 'tardanza', 'descanso', 'sinTurno', 'exceso'];
+  async function registroAlertas() {
+    const { escala, escalaModo, ...filtros } = estAlerta;
+    return callWorker('registro', { filtros, cfg: getCfg(), keyIds: ultAlerta.alertas.map((a) => a.keyId), tipos: TIPOS_ALERTA });
+  }
+  // Columnas de alertas + "Fechas de las incidencias" (qué días fue cada una).
+  function alertasConFechas(reg, sinJefe = false) {
+    const cols = COLS_ALERTA.filter((c) => !(sinJefe && c.key === 'jefe'));
+    return {
+      columnas: [...cols.map((c) => c.key), 'fechas'],
+      titulos: [...cols.map((c) => c.label), 'Fechas de las incidencias'],
+      filas: ultAlerta.alertas.map((a) => ({ ...a, fechas: reg.fechas[a.keyId] || '' })),
+    };
+  }
+
+  async function exportarAlertasCSV() {
     if (!ultAlerta) return;
-    const cols = COLS_ALERTA.map((c) => c.key);
-    const tit = COLS_ALERTA.map((c) => c.label);
-    exportarCSV(`Alertas_${hoy()}`, cols, ultAlerta.alertas, tit);
+    const t = alertasConFechas(await registroAlertas());
+    exportarCSV(`Alertas_${hoy()}`, t.columnas, t.filas, t.titulos);
+  }
+  async function exportarAlertasExcel() {
+    if (!ultAlerta) return;
+    const reg = await registroAlertas();
+    const t = alertasConFechas(reg);
+    await exportarExcelHojas(`Alertas_${hoy()}`, [
+      { nombre: 'Alertas', ...t },
+      hojaRegistro(reg),
+      hojaResumenIncidencias(reg),
+    ]);
   }
   async function exportarAlertasPorJefe() {
     if (!ultAlerta) return;
-    const cols = COLS_ALERTA.filter((c) => c.key !== 'jefe').map((c) => c.key);
-    const tit = COLS_ALERTA.filter((c) => c.key !== 'jefe').map((c) => c.label);
-    await exportarExcelPorGrupo(`Alertas_por_jefe_${hoy()}`, 'jefe', cols, ultAlerta.alertas, tit);
+    const reg = await registroAlertas();
+    const t = alertasConFechas(reg, true);
+    await exportarExcelPorGrupo(`Alertas_por_jefe_${hoy()}`, 'jefe', t.columnas, t.filas, t.titulos, [hojaRegistro(reg)]);
   }
 
   // ---- Barra de filtros simple (compartida) --------------------------------

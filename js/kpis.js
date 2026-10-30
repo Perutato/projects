@@ -584,6 +584,12 @@ export const METRICAS_DRILL = {
 
 const LIMITE_DETALLE = 20000;
 
+/** ["20260902","20260904"] -> "02/09/2026, 04/09/2026" (ordenadas, con tope). */
+function fechasCortas(lista, max = 40) {
+  const f = [...new Set(lista)].sort().map(fFecha);
+  return f.length > max ? `${f.slice(0, max).join(', ')} … y ${f.length - max} más` : f.join(', ');
+}
+
 function fFecha(s) {
   return s && s.length === 8 ? `${s.slice(6, 8)}/${s.slice(4, 6)}/${s.slice(0, 4)}` : '';
 }
@@ -593,14 +599,19 @@ function fFecha(s) {
  * @param {object} sel { metrica, sucursal?, periodo?, granularidad?, keyId?, malla? }
  * @returns {{titulo, personas, detalle, truncado, resumen}}
  */
-export function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFIG) {
-  const m = METRICAS_DRILL[sel.metrica] || METRICAS_DRILL.personas;
+/** Predicado del alcance de una selección (sucursal, período, persona, malla). */
+export function alcanceDrill(sel = {}, filtros = {}) {
   const gran = sel.granularidad || filtros.granularidad || 'dia';
-  const enAlcance = (r) =>
+  return (r) =>
     (!sel.sucursal || r.sucursal === sel.sucursal) &&
     (!sel.periodo || clavePeriodo(r, gran) === sel.periodo) &&
     (!sel.keyId || r.keyId === sel.keyId) &&
     (!sel.malla || claveMalla(r) === sel.malla);
+}
+
+export function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFIG) {
+  const m = METRICAS_DRILL[sel.metrica] || METRICAS_DRILL.personas;
+  const enAlcance = alcanceDrill(sel, filtros);
   const base = filtrar(filas, filtros).filter(enAlcance);
   const teBase = (teFilas ? filtrar(teFilas, filtros) : []).filter(enAlcance);
 
@@ -608,8 +619,9 @@ export function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFI
   const eventos = fuente.filter((r) => m.pred(r, cfg));
   const porKey = new Map();
   for (const r of eventos) {
-    const o = porKey.get(r.keyId) || { n: 0, min: 0 };
+    const o = porKey.get(r.keyId) || { n: 0, min: 0, fechas: [] };
     o.n++;
+    o.fechas.push(r.yyyymmdd);
     o.min += m.min ? m.min(r) || 0 : 0;
     porKey.set(r.keyId, o);
   }
@@ -662,6 +674,8 @@ export function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFI
       ...p,
       eventos: ev.n,
       minEvento: ev.min,
+      // Fechas en que ocurrió el caso (vacío en las métricas que cuentan a todas las personas).
+      fechas: m.todos || sel.metrica === 'asistencia' ? '' : fechasCortas(ev.fechas),
       pctAsistencia: p.diasEsperados ? (p.presentes / p.diasEsperados) * 100 : null,
       fugaH: p.fugaMin / 60,
       hheeEjecH: p.teMin / 60,
@@ -680,17 +694,19 @@ export function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFI
   // Detalle por día (los eventos; en las métricas de personas, todos sus días), ordenado por fecha.
   const detalle = eventos
     .slice()
-    .sort((a, b) => (a.yyyymmdd < b.yyyymmdd ? -1 : a.yyyymmdd > b.yyyymmdd ? 1 : a.nombre.localeCompare(b.nombre)))
+    // Por persona y luego por fecha: así se leen juntos todos los días de cada trabajador.
+    .sort((a, b) => a.nombre.localeCompare(b.nombre) || a.keyId.localeCompare(b.keyId) || (a.yyyymmdd < b.yyyymmdd ? -1 : a.yyyymmdd > b.yyyymmdd ? 1 : 0))
     .slice(0, LIMITE_DETALLE)
     .map((r) => m.te
       ? {
-          fecha: fFecha(r.yyyymmdd), keyId: r.keyId, nombre: r.nombre, sucursal: r.sucursal, turno: r.turno,
+          fecha: fFecha(r.yyyymmdd), keyId: r.keyId, nombre: r.nombre, sucursal: r.sucursal, incidencia: m.titulo, turno: r.turno,
           ejecutadasH: +(r.teMin / 60).toFixed(2), aprobadasH: +(r.heaMin / 60).toFixed(2),
           cumplidasH: +(r.finalesMin / 60).toFixed(2), noReconocidasH: +(r.noReconocidasMin / 60).toFixed(2),
           conAsistencia: r.conAsistencia ? 'Sí' : 'No',
         }
       : {
           fecha: fFecha(r.yyyymmdd), dia: r.diaSemana, keyId: r.keyId, nombre: r.nombre, sucursal: r.sucursal,
+          incidencia: m.todos ? '' : m.titulo, minutos: m.min ? m.min(r) || 0 : '',
           estadoDia: r.estadoDia, tipoTurno: r.tipoTurno,
           turno: r.inicioTurno ? `${r.inicioTurno}–${r.finTurno}` : '',
           entrada: r.primeraEntrada, salida: r.ultimaSalida, marcas: r.patronMarcacion,
