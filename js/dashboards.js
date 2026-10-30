@@ -8,7 +8,21 @@
 import { fmtMiles, fmtPct, fmtHoras, fmtDec1 } from './config.js';
 import * as charts from './charts.js';
 import { exportarExcel, exportarCSV } from './exports.js';
-import { icon } from './icons.js';
+import { icon, help } from './icons.js';
+
+// Fórmula/cálculo de cada gráfico (para el "?").
+const FORMULAS = {
+  gr01: '% Asistencia por sucursal = Σ días presentes ÷ Σ días esperados. Top 15 por dotación.',
+  grTend: 'Serie temporal según la granularidad elegida: tardanzas (días), fuga (h), días no planificados y HHEE (h) por período.',
+  gr06: 'Calidad de marcación: días clasificados en Completa, Incompleta, Sin marcación y Falta injustificada.',
+  gr02: 'Días no planificados = Σ días trabajados sin turno en la malla. El número al lado es el nº de trabajadores afectados.',
+  gr03: 'Justificaciones = días con justificación registrada (de atraso o de salida), por sucursal.',
+  gr04: 'Horas justificadas = Σ minutos de atraso justificado y Σ minutos de salida justificada ÷ 60, apiladas por sucursal.',
+  gr05: 'Fuga de tiempo = Σ atraso E1 (tardanzas) + Σ adelanto S2 (salidas anticipadas) ÷ 60, apiladas por sucursal.',
+  gr07: 'HHEE por sucursal: Ejecutadas (TE) vs Aprobadas (HEA) vs Cumplidas (Finales), en horas.',
+  gr08: 'Brecha = Aprobadas − Ejecutadas (h). Negativo (rojo) = sobre-ejecución; positivo (azul) = sub-ejecución.',
+  gr09: '% Cumplimiento de malla = 1 − (días no planificados ÷ Σ días trabajados). Meta 95%.',
+};
 
 const PALETA = { Tienda: '#1f4e78', 'Logística': '#375623' };
 
@@ -279,7 +293,7 @@ export function crearDashboards({ callWorker, getCfg }) {
       <section class="chart-card ${ancho ? 'g-ancho' : ''}">
         <div class="chart-card-head">
           <div class="cch-left"><span class="sec-num">${num}</span>
-            <div><h3>${titulo}</h3><p class="chart-sub">${subtitulo}</p></div>
+            <div><h3>${titulo}${help(FORMULAS[baseId])}</h3><p class="chart-sub">${subtitulo}</p></div>
           </div>
           <button class="btn-exp" data-export="${baseId}">${icon('download')}<span>Exportar</span></button>
         </div>
@@ -375,7 +389,7 @@ export function crearDashboards({ callWorker, getCfg }) {
       <td class="num">${fmtDec1(p.promedio)}</td>
       <td class="num">${fmtMiles(p.maximo)}</td></tr>`).join('');
     host.innerHTML = `<div class="tabla-scroll"><table class="tabla">
-      <thead><tr><th>Punto</th><th class="num">Días</th><th class="num">% s/ presentes</th><th class="num">Min totales</th><th class="num">Promedio</th><th class="num">Máximo</th></tr></thead>
+      <thead><tr><th>Punto${help('Marca evaluada: E1 ingreso, S1 salida a refrigerio, E2 retorno de refrigerio, S2 salida final.')}</th><th class="num">Días${help('Días con minutos > 0 en ese punto.')}</th><th class="num">% s/ presentes${help('Días con el evento ÷ Σ días presentes.')}</th><th class="num">Min totales${help('Σ minutos del evento en el período.')}</th><th class="num">Promedio${help('Min totales ÷ días con el evento.')}</th><th class="num">Máximo${help('Máximo de minutos del evento en un solo día.')}</th></tr></thead>
       <tbody>${tr}</tbody></table></div>`;
   }
 
@@ -645,8 +659,8 @@ export function crearDashboards({ callWorker, getCfg }) {
       delta = variacion(c, val, data.kpisPrev[c.key]);
     }
     return `
-      <div class="card" title="${esc(c.tip)}">
-        <div class="card-top"><span class="card-lbl">${c.label}</span>${extra}</div>
+      <div class="card">
+        <div class="card-top"><span class="card-lbl">${c.label}${help(c.tip)}</span>${extra}</div>
         <div class="card-val" style="color:${color}">${texto}</div>
         ${delta}
       </div>`;
@@ -775,9 +789,13 @@ export function crearDashboards({ callWorker, getCfg }) {
 
     host.innerHTML = `<div class="tabla-suc-wrap"><table class="tabla tabla-suc tabla-recon">
       <thead><tr>
-        <th>Sucursal</th><th class="num">Dotación</th><th class="num">Asistencia</th>
-        <th class="num">Planificación</th><th class="num">Fuga de tiempo</th>
-        <th class="num">Horas extra</th><th class="num">Desviación HHEE</th>
+        <th>Sucursal</th>
+        <th class="num">Dotación${help('Personas únicas (keyID) en el filtro.')}</th>
+        <th class="num">Asistencia${help('Σ días presentes ÷ Σ días esperados. Debajo: presentes / esperados.')}</th>
+        <th class="num">Planificación${help('Días no planificados (Σ trabajó sin turno) y nº de personas afectadas.')}</th>
+        <th class="num">Fuga de tiempo${help('Σ (atraso E1 + adelanto S2) ÷ 60. Debajo: tardanzas + salidas, y promedio por fiscalizable.')}</th>
+        <th class="num">Horas extra${help('Ejecutadas (TE), Aprobadas (HEA) y Cumplidas (Finales), en horas.')}</th>
+        <th class="num">Desviación HHEE${help('Aprobadas − Ejecutadas (h). El % es relativo a las ejecutadas; negativo = sobre-ejecución.')}</th>
       </tr></thead>
       <tbody>${filas.map(filaTR).join('')}${totalTR}</tbody></table></div>`;
 

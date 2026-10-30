@@ -35,3 +35,10 @@ export function icon(nombre, extra = '') {
   const cls = ('ico ' + extra).trim();
   return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
 }
+
+/** Indicador de ayuda "?" con la fórmula/cálculo en un tooltip. */
+export function help(texto) {
+  if (!texto) return '';
+  const t = String(texto).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  return `<span class="help-dot" title="${t}" aria-label="${t}" tabindex="0">?</span>`;
+}

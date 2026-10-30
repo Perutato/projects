@@ -6,23 +6,23 @@
 
 import { fmtMiles, fmtPct, fmtDec1 } from './config.js';
 import { exportarExcel, exportarCSV, exportarExcelHojas, exportarExcelPorGrupo } from './exports.js';
-import { icon } from './icons.js';
+import { icon, help } from './icons.js';
 
 // Columnas de los cortes por segmento (las 12 métricas).
 const COLS_SEG = [
   { key: 'clave', label: 'Segmento', tipo: 'txt' },
-  { key: 'personas', label: 'Personas', tipo: 'int' },
-  { key: 'diasEsperados', label: 'Días esp.', tipo: 'int' },
-  { key: 'presentes', label: 'Presentes', tipo: 'int' },
-  { key: 'pctAsistencia', label: '% Asist.', tipo: 'pct' },
-  { key: 'tardanzas', label: 'Tardanzas', tipo: 'int' },
-  { key: 'pctTardanza', label: '% Tard.', tipo: 'pct' },
-  { key: 'faltas', label: 'Faltas', tipo: 'int' },
-  { key: 'sinMarcacion', label: 'Sin marc.', tipo: 'int' },
-  { key: 'trabajoEnDescanso', label: 'Trab. desc.', tipo: 'int' },
-  { key: 'excesoRefrigerio', label: 'Exc. refr.', tipo: 'int' },
-  { key: 'sinTurno', label: 'Sin turno', tipo: 'int' },
-  { key: 'feriadoTrabajado', label: 'Feriado trab.', tipo: 'int' },
+  { key: 'personas', label: 'Personas', tipo: 'int', tip: 'Personas únicas (keyID) en el segmento.' },
+  { key: 'diasEsperados', label: 'Días esp.', tipo: 'int', tip: 'Σ días esperados (Asistió, Falta injustificada, Sin marcación o Marcación incompleta).' },
+  { key: 'presentes', label: 'Presentes', tipo: 'int', tip: 'Σ días presentes (Asistió o Marcación incompleta).' },
+  { key: 'pctAsistencia', label: '% Asist.', tipo: 'pct', tip: 'Σ presentes ÷ Σ días esperados.' },
+  { key: 'tardanzas', label: 'Tardanzas', tipo: 'int', tip: 'Σ días con atraso en la primera entrada (E1).' },
+  { key: 'pctTardanza', label: '% Tard.', tipo: 'pct', tip: 'Σ tardanzas ÷ Σ presentes.' },
+  { key: 'faltas', label: 'Faltas', tipo: 'int', tip: 'Días con estado Falta injustificada.' },
+  { key: 'sinMarcacion', label: 'Sin marc.', tipo: 'int', tip: 'Días con turno pero sin ninguna marca.' },
+  { key: 'trabajoEnDescanso', label: 'Trab. desc.', tipo: 'int', tip: 'Días con turno Descanso y al menos una marca.' },
+  { key: 'excesoRefrigerio', label: 'Exc. refr.', tipo: 'int', tip: 'Días con exceso de refrigerio sobre la tolerancia.' },
+  { key: 'sinTurno', label: 'Sin turno', tipo: 'int', tip: 'Días trabajados sin turno planificado.' },
+  { key: 'feriadoTrabajado', label: 'Feriado trab.', tipo: 'int', tip: 'Días feriados con trabajo.' },
 ];
 
 const COLS_ALERTA = [
@@ -32,16 +32,16 @@ const COLS_ALERTA = [
   { key: 'dashboard', label: 'Dashboard', tipo: 'txt' },
   { key: 'jefe', label: 'Jefe', tipo: 'txt' },
   { key: 'cargo', label: 'Cargo', tipo: 'txt' },
-  { key: 'faltas', label: 'Faltas', tipo: 'int' },
-  { key: 'sinMarcacion', label: 'Sin marc.', tipo: 'int' },
-  { key: 'marcacionIncompleta', label: 'Marc. inc.', tipo: 'int' },
-  { key: 'tardanzas', label: 'Tardanzas', tipo: 'int' },
-  { key: 'trabajoEnDescanso', label: 'Trab. desc.', tipo: 'int' },
-  { key: 'trabajoSinTurno', label: 'Sin turno', tipo: 'int' },
-  { key: 'excesoRefrigerio', label: 'Exc. refr.', tipo: 'int' },
-  { key: 'reincidencia', label: 'Reincid.', tipo: 'int' },
-  { key: 'nivel', label: 'Nivel', tipo: 'nivel' },
-  { key: 'motivos', label: 'Motivos', tipo: 'txt' },
+  { key: 'faltas', label: 'Faltas', tipo: 'int', tip: 'Días con Falta injustificada en el período.' },
+  { key: 'sinMarcacion', label: 'Sin marc.', tipo: 'int', tip: 'Días con turno pero sin ninguna marca.' },
+  { key: 'marcacionIncompleta', label: 'Marc. inc.', tipo: 'int', tip: 'Días con marcación iniciada pero incompleta.' },
+  { key: 'tardanzas', label: 'Tardanzas', tipo: 'int', tip: 'Días con atraso en la primera entrada (E1).' },
+  { key: 'trabajoEnDescanso', label: 'Trab. desc.', tipo: 'int', tip: 'Días trabajados en descanso.' },
+  { key: 'trabajoSinTurno', label: 'Sin turno', tipo: 'int', tip: 'Días trabajados sin turno planificado.' },
+  { key: 'excesoRefrigerio', label: 'Exc. refr.', tipo: 'int', tip: 'Días con exceso de refrigerio sobre la tolerancia.' },
+  { key: 'reincidencia', label: 'Reincid.', tipo: 'int', tip: 'Máx. de semanas consecutivas con alerta.' },
+  { key: 'nivel', label: 'Nivel', tipo: 'nivel', tip: 'Alta si ≥2 faltas, ≥5 sin marcación, ≥10 tardanzas o ≥1 sin turno; si no, Media.' },
+  { key: 'motivos', label: 'Motivos', tipo: 'txt', tip: 'Umbrales superados por la persona.' },
 ];
 
 export function crearPaneles({ callWorker, getCfg }) {
@@ -85,19 +85,20 @@ export function crearPaneles({ callWorker, getCfg }) {
       <h2>Puntos de marcación</h2>
       ${tablaGenerica(
         ['Punto', 'Días', '% s/ presentes', 'Min totales', 'Promedio', 'Máximo'],
-        data.puntosMarcacion.map((p) => [p.punto, fmtMiles(p.dias), fmtPct(p.pctPresentes), fmtMiles(p.minTotales), fmtDec1(p.promedio), fmtMiles(p.maximo)])
+        data.puntosMarcacion.map((p) => [p.punto, fmtMiles(p.dias), fmtPct(p.pctPresentes), fmtMiles(p.minTotales), fmtDec1(p.promedio), fmtMiles(p.maximo)]),
+        ['E1 ingreso, S1 salida a refrigerio, E2 retorno de refrigerio, S2 salida final.', 'Días con minutos > 0 en ese punto.', 'Días con el evento ÷ Σ días presentes.', 'Σ minutos del evento.', 'Min totales ÷ días con el evento.', 'Máximo de minutos en un día.']
       )}
       <h2>Distribución por rango de atraso</h2>
-      ${tablaGenerica(['Rango', 'Días', 'Personas'], data.rangoAtraso.map((r) => [r.rango, fmtMiles(r.dias), fmtMiles(r.personas)]))}
+      ${tablaGenerica(['Rango', 'Días', 'Personas'], data.rangoAtraso.map((r) => [r.rango, fmtMiles(r.dias), fmtMiles(r.personas)]), ['Rango de minutos de atraso en E1.', 'Días en ese rango.', 'Personas únicas en ese rango.'])}
       <h2>Categorías de permiso</h2>
-      ${tablaGenerica(['Categoría', 'Días', 'Personas'], data.permisos.map((r) => [r.categoria, fmtMiles(r.dias), fmtMiles(r.personas)]))}
+      ${tablaGenerica(['Categoría', 'Días', 'Personas'], data.permisos.map((r) => [r.categoria, fmtMiles(r.dias), fmtMiles(r.personas)]), ['Categoría del permiso del día.', 'Días con esa categoría.', 'Personas únicas.'])}
       <h2>Feriados trabajados por calendario</h2>
-      ${tablaGenerica(['Calendario', 'Días feriado', 'Feriados trabajados', 'Personas'], data.feriados.map((r) => [r.calendario, fmtMiles(r.diasFeriado), fmtMiles(r.feriadosTrabajados), fmtMiles(r.personas)]))}`;
+      ${tablaGenerica(['Calendario', 'Días feriado', 'Feriados trabajados', 'Personas'], data.feriados.map((r) => [r.calendario, fmtMiles(r.diasFeriado), fmtMiles(r.feriadosTrabajados), fmtMiles(r.personas)]), ['Calendario de festivos de la persona.', 'Días marcados como feriado (F) en la data.', 'Días feriados con trabajo (≥1 marca).', 'Personas que trabajaron en feriado.'])}`;
   }
 
   function tablaSeg(titulo, filas, claveLbl) {
     const cols = COLS_SEG.map((c) => (c.key === 'clave' ? { ...c, label: claveLbl } : c));
-    const th = cols.map((c) => `<th class="${c.tipo !== 'txt' ? 'num' : ''}">${c.label}</th>`).join('');
+    const th = cols.map((c) => `<th class="${c.tipo !== 'txt' ? 'num' : ''}">${c.label}${help(c.tip)}</th>`).join('');
     const tr = filas.map((f) => `<tr>${cols.map((c) => `<td class="${c.tipo !== 'txt' ? 'num' : ''}">${fmtVal(f[c.key], c.tipo)}</td>`).join('')}</tr>`).join('');
     return `<h2>${titulo}</h2><div class="tabla-scroll"><table class="tabla">${`<thead><tr>${th}</tr></thead>`}<tbody>${tr}</tbody></table></div>`;
   }
@@ -175,7 +176,7 @@ export function crearPaneles({ callWorker, getCfg }) {
     }
     const host = cont.querySelector('[data-tabla]');
     if (!filas.length) { host.innerHTML = '<p class="vacio">No hay personas que superen los umbrales.</p>'; return; }
-    const th = COLS_ALERTA.map((c) => `<th data-ord="${c.key}" class="orden ${c.tipo === 'int' ? 'num' : ''} ${ordenAlerta.campo === c.key ? 'ordenado' : ''}">${c.label}${ordenAlerta.campo === c.key ? icon(dirIco(ordenAlerta.dir), 'ico-xs') : ''}</th>`).join('');
+    const th = COLS_ALERTA.map((c) => `<th data-ord="${c.key}" class="orden ${c.tipo === 'int' ? 'num' : ''} ${ordenAlerta.campo === c.key ? 'ordenado' : ''}">${c.label}${help(c.tip)}${ordenAlerta.campo === c.key ? icon(dirIco(ordenAlerta.dir), 'ico-xs') : ''}</th>`).join('');
     const tr = filas.slice(0, 2000).map((a) => `<tr>${COLS_ALERTA.map((c) => celdaAlerta(a, c)).join('')}</tr>`).join('');
     host.innerHTML = `<div class="tabla-alertas-wrap"><table class="tabla tabla-alertas"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>${filas.length > 2000 ? `<p class="nota">Mostrando 2.000 de ${fmtMiles(filas.length)}.</p>` : ''}`;
     host.querySelectorAll('th[data-ord]').forEach((h) => h.addEventListener('click', () => {
@@ -265,8 +266,8 @@ export function crearPaneles({ callWorker, getCfg }) {
 }
 
 // --- Utilidades --------------------------------------------------------------
-function tablaGenerica(titulos, filas) {
-  const th = titulos.map((t, i) => `<th class="${i === 0 ? '' : 'num'}">${t}</th>`).join('');
+function tablaGenerica(titulos, filas, tips) {
+  const th = titulos.map((t, i) => `<th class="${i === 0 ? '' : 'num'}">${t}${tips && tips[i] ? help(tips[i]) : ''}</th>`).join('');
   const tr = filas.map((f) => `<tr>${f.map((v, i) => `<td class="${i === 0 ? '' : 'num'}">${esc(v)}</td>`).join('')}</tr>`).join('');
   return `<div class="tabla-scroll"><table class="tabla"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
 }
