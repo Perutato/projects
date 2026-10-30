@@ -150,7 +150,7 @@ export function calcularEstadoDia(categoria, tipoTurno, nMarcaciones, primeraEnt
 
 /**
  * Parsea la Asistencia desde un array-de-arrays.
- * @returns {{registros: Array, fechasInvalidas: number, filaEncabezado: number}}
+ * @returns {{registros: Array, fechasInvalidas: number, ejemplosFechas: Array, filaEncabezado: number}}
  */
 export function parseAsistencia(aoa) {
   const fe = encontrarFilaEncabezado(aoa, ['Identificador', 'Permiso', 'Turno']);
@@ -169,6 +169,7 @@ export function parseAsistencia(aoa) {
 
   const registros = [];
   let fechasInvalidas = 0;
+  const ejemplosFechas = []; // primeras filas con fecha ilegible (para Calidad)
   const start = fe >= 0 ? fe + 1 : 1;
 
   for (let r = start; r < aoa.length; r++) {
@@ -219,6 +220,7 @@ export function parseAsistencia(aoa) {
     const f = parseFechaAsistencia(fechaRaw);
     if (!f.ok) {
       fechasInvalidas++;
+      if (ejemplosFechas.length < 50) ejemplosFechas.push({ fila: r + 1, keyId, valor: String(fechaRaw ?? '') });
       continue; // sin fecha válida no se puede ubicar en el tiempo
     }
     const keyDia = keyId + '|' + f.yyyymmdd;
@@ -349,5 +351,5 @@ export function parseAsistencia(aoa) {
     });
   }
 
-  return { registros, fechasInvalidas, filaEncabezado: fe };
+  return { registros, fechasInvalidas, ejemplosFechas, filaEncabezado: fe };
 }

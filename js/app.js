@@ -20,9 +20,11 @@ import {
   limpiarTodo,
   setConfig,
   getCortes,
+  setCortes,
   guardarCorte,
   eliminarCorte,
 } from './storage.js';
+import { exportarExcelHojas } from './exports.js';
 import { fmtMiles, fmtPct, fmtDec1, DEFAULT_CONFIG } from './config.js';
 import { crearDashboards } from './dashboards.js';
 import { crearPaneles } from './panels.js';
@@ -195,6 +197,10 @@ function invItem(p, tipo) {
     id: `${tipo}-${p.lote}-${Date.now()}`,
     nombre: p.fileName, tipo, rango: p.rango || '—',
     filas: p.filas || 0, fechaCarga: new Date().toISOString(), lote: p.lote,
+    // Diagnóstico de lectura (se muestra en Calidad).
+    fechasInvalidas: p.fechasInvalidas || 0,
+    ejemplosFechas: (p.ejemplosFechas || []).map((e) => ({ ...e, archivo: p.fileName })),
+    descartadasTotales: p.descartadasTotales || 0,
   };
 }
 
@@ -202,13 +208,18 @@ async function recalcular() {
   const dot = await getDotacion();
   const asistencia = await getAsistencia();
   const tiempoExtra = await getTiempoExtra();
+  const inv = await getInventario();
   if (!dot && !asistencia.length) { renderCalidad(); return; }
   mostrarProgreso(true, 'Recalculando…');
   try {
     const res = await callWorker('recalcular', {
       personas: dot && !dot.aoa ? dot.personas : [],
       dotacionAoa: dot && dot.aoa ? dot.aoa : null,
-      asistencia, tiempoExtra, cfg, meta: {},
+      asistencia, tiempoExtra, cfg,
+      meta: {
+        fechasInvalidas: inv.reduce((a, x) => a + (x.fechasInvalidas || 0), 0),
+        ejemplosFechas: inv.flatMap((x) => x.ejemplosFechas || []).slice(0, 200),
+      },
     });
     ultimaCalidad = { controles: res.controles, listados: res.listados, totalFilas: res.totalFilas };
     dashboards.setOpciones(res.filtros);
@@ -273,7 +284,7 @@ function renderCalidad() {
   const filasCt = controles.map((c) => `
       <tr class="${c.ok ? 'ct-ok' : 'ct-error'}">
         <td>${c.id}</td><td>${escapeHtml(c.nombre)}</td>
-        <td><span class="badge ${c.ok ? 'badge-ok' : 'badge-error'}">${c.ok ? 'OK' : 'ERROR'}</span></td>
+        <td><span class="estado ${c.ok ? 'estado-ok' : 'estado-crit'}">${icon(c.ok ? 'calidad' : 'warning', 'ico-xs')}${c.ok ? 'Sin observaciones' : 'Revisar'}</span></td>
         <td class="detalle">${escapeHtml(c.detalle || '')}</td>
       </tr>`).join('');
   const lst = (titulo, arr, render) => `
@@ -282,7 +293,11 @@ function renderCalidad() {
       ${arr.length ? `<div class="listado-body">${arr.slice(0, 200).map(render).join('')}</div>${arr.length > 200 ? `<p class="nota">Mostrando 200 de ${fmtMiles(arr.length)}.</p>` : ''}` : '<p class="vacio">Sin observaciones.</p>'}
     </details>`;
   cont.querySelector('.contenido').innerHTML = `
-    <div class="resumen-ct"><span class="badge ${okCount === controles.length ? 'badge-ok' : 'badge-error'}">${okCount}/${controles.length} controles OK</span></div>
+    <div class="resumen-ct"><span class="estado ${okCount === controles.length ? 'estado-ok' : 'estado-crit'}">${icon(okCount === controles.length ? 'calidad' : 'warning', 'ico-xs')}${okCount} de ${controles.length} controles sin observaciones</span></div>
+    ${(listados.fechasInvalidas || listados.teSinAsistencia) ? `<div class="avisos-calidad">
+      ${listados.fechasInvalidas ? `<p class="aviso">${icon('warning')}<span><b>${fmtMiles(listados.fechasInvalidas)}</b> filas de Asistencia tienen una fecha que no se pudo leer (por ejemplo 31/02) y no se cuentan en ningún indicador. Revisa los ejemplos abajo.</span></p>` : ''}
+      ${listados.teSinAsistencia ? `<p class="aviso-sutil"><span><b>${fmtMiles(listados.teSinAsistencia)}</b> días de Tiempo Extra no tienen fila de Asistencia. Sus horas extra sí se suman en los tableros.</span></p>` : ''}
+    </div>` : ''}
     <table class="tabla tabla-ct"><thead><tr><th>Control</th><th>Descripción</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>${filasCt}</tbody></table>
     <h3>Observaciones adicionales</h3>
     <div class="listados">
@@ -292,6 +307,7 @@ function renderCalidad() {
       ${lst('Horarios sin modelo', listados.horariosSinModelo, (x) => `<div class="li">${x.keyId} · ${escapeHtml(x.nombre)} · ${escapeHtml(x.horario)}</div>`)}
       ${lst('Validación de horas = "Revisar"', listados.horasRevisar, (x) => `<div class="li">${x.keyId} · ${escapeHtml(x.nombre)} · horario ${x.horasHorario ?? '?'}h vs contrato ${x.horasContrato ?? '?'}h</div>`)}
       ${lst('Cargos que no coinciden', listados.cargosNoCoinciden, (x) => `<div class="li">${x.keyId} · ${escapeHtml(x.cargoOficial)} ≠ ${escapeHtml(x.cargoMarcacion)}</div>`)}
+      ${lst('Fechas de Asistencia que no se pudieron leer', listados.ejemplosFechas || [], (x) => `<div class="li">${escapeHtml(x.archivo || '')} · fila ${fmtMiles(x.fila)} · ${escapeHtml(x.keyId || '')} · valor «${escapeHtml(String(x.valor ?? ''))}»</div>`)}
       ${lst('Marcaciones después del cese', listados.marcacionesTrasCese, (x) => `<div class="li">${x.keyId} · ${escapeHtml(x.nombre)} · ${x.fecha}</div>`)}
     </div>`;
 }
@@ -312,23 +328,38 @@ async function renderHistorico() {
   cont.innerHTML = `
     <header class="vista-head"><h1>Histórico de cortes</h1>
       <div class="acciones">
+        <button class="btn btn-sec" data-exp-excel ${cortes.length ? '' : 'disabled'}>${icon('download')}<span>Exportar Excel</span></button>
+        <button class="btn btn-sec" data-respaldar ${cortes.length ? '' : 'disabled'}>${icon('save')}<span>Respaldar (.json)</span></button>
+        <button class="btn btn-sec" data-restaurar-btn>${icon('upload')}<span>Restaurar (.json)</span></button>
+        <input type="file" accept=".json" data-restaurar-file hidden />
         <button class="btn" data-guardar>${icon('save')}<span>Guardar corte actual</span></button>
       </div>
     </header>
     <p class="nota">Cada carga de datos nuevos guarda un corte (foto de las incidencias: faltas, sin marcación, marcación incompleta y trabajó sin turno, en Tienda y Logística). ${fmtMiles(cortes.length)} corte(s) guardado(s).</p>
-    <div class="grafico g-ancho" id="grHistorico" ${cortes.length < 2 ? 'hidden' : ''}></div>
+    <div class="panel" ${cortes.length < 2 ? 'hidden' : ''}><h3>Incidencias por corte</h3><p class="panel-sub">Nuevas, pendientes y regularizadas en cada corte guardado</p><div class="chart" id="grHistorico"></div></div>
     <div data-cuerpo></div>`;
   cont.querySelector('[data-guardar]').addEventListener('click', async () => {
     await autoGuardarCorte();
     toast('Corte guardado.', 'ok');
     renderHistorico();
   });
+  // Exportar / respaldar / restaurar el histórico.
+  const bExcel = cont.querySelector('[data-exp-excel]');
+  if (bExcel) bExcel.addEventListener('click', () => exportarHistorico(cortes));
+  const bResp = cont.querySelector('[data-respaldar]');
+  if (bResp) bResp.addEventListener('click', () => respaldarHistorico(cortes));
+  const bRest = cont.querySelector('[data-restaurar-btn]');
+  const fRest = cont.querySelector('[data-restaurar-file]');
+  if (bRest && fRest) {
+    bRest.addEventListener('click', () => fRest.click());
+    fRest.addEventListener('change', () => restaurarHistorico(fRest.files[0]));
+  }
 
   const cuerpo = cont.querySelector('[data-cuerpo]');
   if (!cortes.length) { cuerpo.innerHTML = '<p class="vacio">Aún no hay cortes. Carga datos o pulsa "Guardar corte actual".</p>'; return; }
 
   const serie = evolucionCortes(cortes);
-  if (cortes.length >= 2) chartEvolucion('grHistorico', 'Evolución de incidencias por corte', serie, '#1f4e78');
+  if (cortes.length >= 2) chartEvolucion('grHistorico', 'Incidencias por corte', serie);
   setTimeout(() => resizeTodos(), 30);
 
   // Tabla de cortes (con su resumen vs. el anterior).
@@ -358,12 +389,12 @@ async function renderHistorico() {
     <h2>Cortes guardados</h2>
     <div class="tabla-scroll"><table class="tabla"><thead><tr><th>Fecha de carga</th><th class="num">Actuales</th><th class="num">Nuevas</th><th class="num">Pendientes</th><th class="num">Regularizadas</th><th class="num">% Regular.</th><th></th></tr></thead><tbody>${filasCortes}</tbody></table></div>
     <h2>Último corte vs. anterior</h2>
-    <div class="chips">
-      <span class="chip chip-total">${fmtMiles(cmp.resumen.actuales)} actuales</span>
-      <span class="chip chip-alta">${fmtMiles(cmp.resumen.nuevas)} nuevas</span>
-      <span class="chip chip-media">${fmtMiles(cmp.resumen.pendientes)} pendientes</span>
-      <span class="chip chip-ok">${fmtMiles(cmp.resumen.regularizadas)} regularizadas</span>
-      <span class="chip chip-total">${fmtPct(cmp.resumen.pctRegularizacion)} regularización</span>
+    <div class="cifras">
+      <div class="cifra-item"><span class="tile-lbl">Incidencias actuales</span><span class="tile-val">${fmtMiles(cmp.resumen.actuales)}</span></div>
+      <div class="cifra-item"><span class="tile-lbl">Nuevas</span><span class="tile-val">${fmtMiles(cmp.resumen.nuevas)}</span></div>
+      <div class="cifra-item"><span class="tile-lbl">Pendientes del corte anterior</span><span class="tile-val">${fmtMiles(cmp.resumen.pendientes)}</span></div>
+      <div class="cifra-item"><span class="tile-lbl">Regularizadas</span><span class="tile-val">${fmtMiles(cmp.resumen.regularizadas)}</span></div>
+      <div class="cifra-item"><span class="tile-lbl">Regularización</span><span class="tile-val">${fmtPct(cmp.resumen.pctRegularizacion)}</span></div>
     </div>
     ${tablaDiff('Por sucursal', cmp.porSucursal, 'Sucursal')}
     ${tablaDiff('Por jefe directo', cmp.porJefe, 'Jefe')}`;
@@ -373,6 +404,63 @@ async function renderHistorico() {
     await eliminarCorte(b.dataset.corte);
     renderHistorico();
   }));
+}
+
+// Exporta el histórico a Excel: resumen por corte + comparación del último.
+function exportarHistorico(cortes) {
+  if (!cortes.length) return;
+  const serie = evolucionCortes(cortes);
+  const resumen = cortes.map((c, i) => ({
+    fecha: new Date(c.fecha).toLocaleString('es-PE'),
+    tipo: c.auto ? 'auto' : 'manual',
+    actuales: serie[i].actuales,
+    nuevas: serie[i].nuevas,
+    pendientes: serie[i].actuales - serie[i].nuevas,
+    regularizadas: serie[i].regularizadas,
+    pctRegularizacion: +serie[i].pctRegularizacion.toFixed(1),
+  }));
+  const actual = cortes[cortes.length - 1];
+  const anterior = cortes.length >= 2 ? cortes[cortes.length - 2] : null;
+  const cmp = compararCortes(actual, anterior);
+  const hojas = [
+    { nombre: 'Cortes', columnas: ['fecha', 'tipo', 'actuales', 'nuevas', 'pendientes', 'regularizadas', 'pctRegularizacion'], titulos: ['Fecha', 'Tipo', 'Actuales', 'Nuevas', 'Pendientes', 'Regularizadas', '% Regularización'], filas: resumen },
+    { nombre: 'Por sucursal', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Sucursal', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porSucursal },
+    { nombre: 'Por jefe', columnas: ['clave', 'nuevas', 'pendientes', 'regularizadas'], titulos: ['Jefe', 'Nuevas', 'Pendientes', 'Regularizadas'], filas: cmp.porJefe },
+  ];
+  exportarExcelHojas(`Historico_${new Date().toISOString().slice(0, 10)}`, hojas);
+}
+
+// Respalda el histórico completo a un archivo .json (para mover de equipo).
+function respaldarHistorico(cortes) {
+  const blob = new Blob([JSON.stringify({ version: 1, exportado: new Date().toISOString(), cortes }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `historico_cortes_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Restaura el histórico desde un archivo .json (fusiona por id de corte).
+async function restaurarHistorico(file) {
+  if (!file) return;
+  try {
+    const texto = await file.text();
+    const data = JSON.parse(texto);
+    const importados = Array.isArray(data) ? data : data.cortes;
+    if (!Array.isArray(importados)) throw new Error('Formato no reconocido.');
+    const actuales = await getCortes();
+    const porId = new Map(actuales.map((c) => [c.id, c]));
+    for (const c of importados) if (c && c.id && Array.isArray(c.incidencias)) porId.set(c.id, c);
+    const fusion = [...porId.values()].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+    await setCortes(fusion);
+    toast(`Histórico restaurado: ${fmtMiles(importados.length)} corte(s) importado(s).`, 'ok');
+    renderHistorico();
+  } catch (err) {
+    toast('No se pudo restaurar: ' + err.message, 'error');
+  }
 }
 
 // ---- Parámetros -------------------------------------------------------------

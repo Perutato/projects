@@ -89,3 +89,10 @@ test('reincidencia cuenta semanas consecutivas con alerta', () => {
   ]);
   assert.equal(reincidencia(semanas), 2); // W36-W37 consecutivas
 });
+
+test('alertas: con escala "dia" los umbrales se vuelven proporcionales', () => {
+  const filas = [fila({ tardanza: 1, atrasoE1: 5, keyDia: '1|20260901' })];
+  // Mes: umbral 5 tardanzas -> no alerta. Día: 5 × 0.05 -> mínimo 1 -> alerta.
+  assert.equal(construirAlertas(filas, { escala: 'mes' }).resumen.total, 0);
+  assert.equal(construirAlertas(filas, { escala: 'dia' }).resumen.total, 1);
+});

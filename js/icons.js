@@ -26,6 +26,11 @@ const P = {
   reset: '<path d="M3 2v6h6"/><path d="M3.51 8.5A9 9 0 1 1 3 12"/>',
   up: '<polyline points="18 15 12 9 6 15"/>',
   down: '<polyline points="6 9 12 15 18 9"/>',
+  filtro: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+  tabla: '<rect x="3" y="4" width="18" height="16" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="10" x2="9" y2="20"/>',
+  barras: '<line x1="4" y1="20" x2="20" y2="20"/><rect x="5" y="11" width="3" height="9"/><rect x="11" y="6" width="3" height="14"/><rect x="17" y="13" width="3" height="7"/>',
+  personas: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  flecha: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
   file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
 };
 
@@ -34,4 +39,14 @@ export function icon(nombre, extra = '') {
   const path = P[nombre] || '';
   const cls = ('ico ' + extra).trim();
   return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+}
+
+/** Indicador de ayuda "?" con la fórmula/cálculo en un tooltip. */
+export function help(texto, focusable = true) {
+  if (!texto) return '';
+  const t = String(texto).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  // Dentro de un botón (tarjeta clicable) el "?" no debe ser enfocable.
+  return focusable
+    ? `<span class="help-dot" title="${t}" aria-label="Cálculo: ${t}" role="note" tabindex="0">?</span>`
+    : `<span class="help-dot" title="${t}" aria-hidden="true">?</span>`;
 }

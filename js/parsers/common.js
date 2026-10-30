@@ -94,6 +94,17 @@ export function toNum(v) {
 }
 
 /**
+ * Construye una fecha local solo si día, mes y año existen de verdad
+ * (evita que "31-02-2026" ruede silenciosamente al 3 de marzo).
+ * @returns {Date|null}
+ */
+export function fechaValida(yyyy, mm, dd) {
+  if (!(yyyy > 1900 && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31)) return null;
+  const d = new Date(yyyy, mm - 1, dd);
+  return d.getFullYear() === yyyy && d.getMonth() === mm - 1 && d.getDate() === dd ? d : null;
+}
+
+/**
  * Parsea una fecha de Asistencia del tipo "Mar 01-09-2026".
  * (día de la semana abreviado + dd-mm-yyyy; puede traer "(F)" de feriado)
  * @returns {{date: Date|null, yyyymmdd: string, diaSemana: string,
@@ -121,8 +132,8 @@ export function parseFechaAsistencia(v) {
     const dd = parseInt(m[1], 10);
     const mm = parseInt(m[2], 10);
     const yyyy = parseInt(m[3], 10);
-    const d = new Date(yyyy, mm - 1, dd);
-    if (!Number.isNaN(d.getTime())) {
+    const d = fechaValida(yyyy, mm, dd);
+    if (d) {
       res.date = d;
       res.ok = true;
       res.yyyymmdd = `${yyyy}${String(mm).padStart(2, '0')}${String(dd).padStart(2, '0')}`;
@@ -155,8 +166,8 @@ export function parseFechaTE(v) {
     const mm = parseInt(m[2], 10);
     let yyyy = parseInt(m[3], 10);
     if (yyyy < 100) yyyy += 2000; // año de 2 dígitos => 20xx
-    const d = new Date(yyyy, mm - 1, dd);
-    if (!Number.isNaN(d.getTime())) {
+    const d = fechaValida(yyyy, mm, dd);
+    if (d) {
       res.date = d;
       res.ok = true;
       res.yyyymmdd = `${yyyy}${String(mm).padStart(2, '0')}${String(dd).padStart(2, '0')}`;
@@ -177,14 +188,12 @@ export function parseFechaGenerica(v) {
   // yyyy-mm-dd
   let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
   if (m) {
-    const d = new Date(+m[1], +m[2] - 1, +m[3]);
-    return Number.isNaN(d.getTime()) ? null : d;
+    return fechaValida(+m[1], +m[2], +m[3]);
   }
   // dd-mm-yyyy o d/m/yyyy
   m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
   if (m) {
-    const d = new Date(+m[3], +m[2] - 1, +m[1]);
-    return Number.isNaN(d.getTime()) ? null : d;
+    return fechaValida(+m[3], +m[2], +m[1]);
   }
   return null;
 }
