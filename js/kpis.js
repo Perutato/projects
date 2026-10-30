@@ -334,8 +334,58 @@ export function turnoTipico(rows) {
   return { inicio: mediana(ini), fin: mediana(fin), refrigerio: mediana(ref), n: ini.length };
 }
 
+function hhmmDe(min) {
+  const m = ((min % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
+/**
+ * Clave de la malla horaria de un día: inicio–fin del turno programado y
+ * minutos de refrigerio ("09:00-18:00|60"). Vacía si el día no tiene turno.
+ */
+export function claveMalla(f) {
+  if (f.tipoTurno !== 'Turno programado') return '';
+  const a = aMin(f.inicioTurno), b = aMin(f.finTurno);
+  if (a == null || b == null) return '';
+  return `${hhmmDe(a)}-${hhmmDe(b)}|${f.refrigerioProgMin || 0}`;
+}
+
+/**
+ * Mallas horarias: los horarios que se repiten en un conjunto de filas, del
+ * más frecuente al menos, cada uno con sus cuatro marcas del reloj.
+ */
+export function mallasDe(rows) {
+  const grupos = new Map();
+  for (const f of rows) {
+    const k = claveMalla(f);
+    if (!k) continue;
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(f);
+  }
+  const total = [...grupos.values()].reduce((s, g) => s + g.length, 0);
+  return [...grupos.entries()].map(([id, g]) => {
+    const inicio = aMin(g[0].inicioTurno);
+    const finRaw = aMin(g[0].finTurno);
+    const fin = finRaw <= inicio ? finRaw + 1440 : finRaw;
+    const refrigerio = g[0].refrigerioProgMin || 0;
+    const presentes = g.reduce((s, f) => s + (f.presente || 0), 0);
+    const tard = g.reduce((s, f) => s + (f.tardanza || 0), 0);
+    return {
+      id, inicio, fin, refrigerio,
+      etiqueta: `${hhmmDe(inicio)}–${hhmmDe(fin)}`,
+      horas: (fin - inicio - refrigerio) / 60,
+      dias: g.length,
+      personas: new Set(g.map((f) => f.keyId)).size,
+      pctDias: total ? (g.length / total) * 100 : 0,
+      fugaMin: g.reduce((s, f) => s + (f.fugaMin || 0), 0),
+      pctTardanza: presentes ? (tard / presentes) * 100 : 0,
+      puntos: puntosDe(g),
+    };
+  }).sort((x, y) => y.dias - x.dias || x.inicio - y.inicio);
+}
+
 function anatomiaDe(rows) {
-  return { turno: turnoTipico(rows), puntos: puntosDe(rows) };
+  return { turno: turnoTipico(rows), puntos: puntosDe(rows), mallas: mallasDe(rows) };
 }
 
 // ---------------------------------------------------------------------------
@@ -540,7 +590,7 @@ function fFecha(s) {
 
 /**
  * Lista de trabajadores (con su información) detrás de una selección.
- * @param {object} sel { metrica, sucursal?, periodo?, granularidad? }
+ * @param {object} sel { metrica, sucursal?, periodo?, granularidad?, keyId?, malla? }
  * @returns {{titulo, personas, detalle, truncado, resumen}}
  */
 export function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFIG) {
@@ -549,7 +599,8 @@ export function construirDrill(filas, teFilas, filtros, sel, cfg = DEFAULT_CONFI
   const enAlcance = (r) =>
     (!sel.sucursal || r.sucursal === sel.sucursal) &&
     (!sel.periodo || clavePeriodo(r, gran) === sel.periodo) &&
-    (!sel.keyId || r.keyId === sel.keyId);
+    (!sel.keyId || r.keyId === sel.keyId) &&
+    (!sel.malla || claveMalla(r) === sel.malla);
   const base = filtrar(filas, filtros).filter(enAlcance);
   const teBase = (teFilas ? filtrar(teFilas, filtros) : []).filter(enAlcance);
 

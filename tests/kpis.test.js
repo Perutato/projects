@@ -157,3 +157,27 @@ test('construirDrill de HHEE usa las filas de Tiempo Extra', () => {
   assert.equal(r.personas[0].hheeEjecH, 2);
   assert.equal(r.detalle[0].ejecutadasH, 2);
 });
+
+import { mallasDe, claveMalla } from '../js/kpis.js';
+
+test('mallasDe agrupa los horarios que se repiten y el drill filtra por malla', () => {
+  const t = (over) => fila({ tipoTurno: 'Turno programado', inicioTurno: '09:00', finTurno: '18:00', refrigerioProgMin: 60, ...over });
+  const filas = [
+    t({ tardanza: 1, atrasoE1: 10, fugaMin: 10 }),
+    t({ keyId: '2', keyDia: '2|20260901', nombre: 'B' }),
+    t({ keyId: '3', keyDia: '3|20260901', nombre: 'C', inicioTurno: '22:00', finTurno: '7:00', refrigerioProgMin: 45, tardanza: 1, atrasoE1: 5, fugaMin: 5 }),
+    fila({ keyId: '4', keyDia: '4|20260901', nombre: 'D', tipoTurno: 'Descanso' }),
+  ];
+  const m = mallasDe(filas);
+  assert.equal(m.length, 2);
+  assert.equal(m[0].id, '09:00-18:00|60');
+  assert.equal(m[0].dias, 2);
+  assert.equal(m[0].personas, 2);
+  assert.equal(m[0].horas, 8);
+  // Turno nocturno: el fin pasa al día siguiente.
+  assert.equal(m[1].etiqueta, '22:00–07:00');
+  assert.equal(m[1].fin - m[1].inicio, 540);
+  assert.equal(claveMalla(filas[3]), '');
+  const r = construirDrill(filas, [], { dashboard: 'Tienda' }, { metrica: 'E1', malla: '22:00-07:00|45' });
+  assert.deepEqual(r.personas.map((p) => p.keyId), ['3']);
+});

@@ -158,6 +158,8 @@ export function crearDashboards({ callWorker, getCfg }) {
   const tendCampo = { Tienda: 'pctAsistencia', 'Logística': 'pctAsistencia' };
   const calorCampo = { Tienda: 'incid', 'Logística': 'incid' };
   const anatSuc = { Tienda: '', 'Logística': '' };
+  const anatMalla = { Tienda: '', 'Logística': '' }; // malla horaria elegida (clave) o '' = turno típico
+  const anatMallaTodas = { Tienda: false, 'Logística': false };
   const ordenSuc = { Tienda: 'fugaH', 'Logística': 'fugaH' };
   let panelAbierto = null; // multiselect de sucursal abierto (un solo listener global)
   let drawerEstado = null;
@@ -662,39 +664,119 @@ export function crearDashboards({ callWorker, getCfg }) {
   }
 
   // ---- Anatomía de la jornada (las cuatro marcas del reloj) ------------------
+  // Se dibuja sobre el turno típico o sobre una malla horaria concreta: los
+  // horarios (inicio–fin + refrigerio) que se repiten en la sucursal.
   function anatomiaHTML(dashboard, data) {
     const sucs = data.porSucursal.map((s) => s.sucursal);
     if (anatSuc[dashboard] && !sucs.includes(anatSuc[dashboard])) anatSuc[dashboard] = '';
     return `<section class="panel anatomia" data-anatomia>
       <header class="panel-head">
-        <div><h3>Anatomía de la jornada${help('Turno típico del filtro (mediana de inicio, fin y refrigerio de los turnos programados). En rojo, los minutos promedio que se pierden en cada marca del reloj, en los días en que ocurre.')}</h3>
+        <div><h3>Anatomía de la jornada${help('Sin malla elegida se dibuja el turno típico (mediana de inicio, fin y refrigerio de los turnos programados). Con una malla horaria se dibuja ese horario exacto y solo sus días. En rojo, los minutos promedio que se pierden en cada marca del reloj, en los días en que ocurre.')}</h3>
         <p class="panel-sub">Dónde se pierden los minutos en las cuatro marcas del reloj · clic en una marca para ver a los trabajadores</p></div>
-        <label class="anat-sel"><span class="flbl">Sucursal</span>
-          <select data-anat-suc><option value="">Todas</option>${sucs.map((s) => `<option value="${esc(s)}" ${anatSuc[dashboard] === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
-        </label>
+        <div class="anat-sels">
+          <label class="anat-sel"><span class="flbl">Sucursal</span>
+            <select data-anat-suc><option value="">Todas</option>${sucs.map((s) => `<option value="${esc(s)}" ${anatSuc[dashboard] === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+          </label>
+          <label class="anat-sel"><span class="flbl">Malla horaria${help('Cada malla es un horario que se repite: hora de inicio, hora de fin y minutos de refrigerio del turno programado.')}</span>
+            <select data-anat-malla></select>
+          </label>
+        </div>
       </header>
       <div class="anat-cuerpo" data-anat-cuerpo></div>
+      <div class="mallas" data-mallas></div>
     </section>`;
   }
+
   function montarAnatomia(dashboard, cont) {
-    const sel = cont.querySelector('[data-anat-suc]');
-    if (!sel) return;
-    const pintar = () => {
+    const selSuc = cont.querySelector('[data-anat-suc]');
+    const selMalla = cont.querySelector('[data-anat-malla]');
+    if (!selSuc) return;
+    const alcance = () => {
       const data = ultData[dashboard];
-      const a = anatSuc[dashboard] ? data.anatomia.porSucursal[anatSuc[dashboard]] : data.anatomia.global;
+      return (anatSuc[dashboard] ? data.anatomia.porSucursal[anatSuc[dashboard]] : data.anatomia.global) || null;
+    };
+    const pintarSelector = () => {
+      const a = alcance();
+      const mallas = (a && a.mallas) || [];
+      if (anatMalla[dashboard] && !mallas.some((m) => m.id === anatMalla[dashboard])) anatMalla[dashboard] = '';
+      selMalla.innerHTML = `<option value="">Turno típico (${fmtMiles(mallas.length)} ${mallas.length === 1 ? 'malla' : 'mallas'})</option>`
+        + mallas.map((m) => `<option value="${esc(m.id)}" ${anatMalla[dashboard] === m.id ? 'selected' : ''}>${m.etiqueta} · refr. ${fmtMiles(m.refrigerio)} min · ${fmtMiles(m.dias)} días</option>`).join('');
+      selMalla.disabled = !mallas.length;
+    };
+    const pintar = () => {
+      const a = alcance();
+      const malla = a && anatMalla[dashboard] ? a.mallas.find((m) => m.id === anatMalla[dashboard]) : null;
+      const vistaA = malla ? { turno: { inicio: malla.inicio, fin: malla.fin, refrigerio: malla.refrigerio, n: malla.dias }, puntos: malla.puntos } : a;
       const cuerpo = cont.querySelector('[data-anat-cuerpo]');
-      cuerpo.innerHTML = anatomiaSVG(a);
+      cuerpo.innerHTML = anatomiaSVG(vistaA, malla, anatSuc[dashboard]);
       cuerpo.querySelectorAll('[data-marca]').forEach((g) => {
-        const go = () => abrirDrill(dashboard, { metrica: g.dataset.marca, sucursal: anatSuc[dashboard] || undefined });
+        const go = () => abrirDrill(dashboard, { metrica: g.dataset.marca, sucursal: anatSuc[dashboard] || undefined, malla: anatMalla[dashboard] || undefined });
         g.addEventListener('click', go);
         g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
       });
+      const verMalla = cuerpo.querySelector('[data-ver-malla]');
+      if (verMalla) verMalla.addEventListener('click', () => abrirDrill(dashboard, { metrica: 'personas', sucursal: anatSuc[dashboard] || undefined, malla: anatMalla[dashboard] }));
+      pintarListaMallas(a ? a.mallas : []);
     };
-    sel.addEventListener('change', () => { anatSuc[dashboard] = sel.value; pintar(); });
+    // Lista visual de mallas sobre un eje horario común: clic = elegir malla.
+    const pintarListaMallas = (mallas) => {
+      const host = cont.querySelector('[data-mallas]');
+      if (!mallas.length) { host.innerHTML = ''; return; }
+      const todas = anatMallaTodas[dashboard];
+      const MAX = 6;
+      const vis = todas ? mallas : mallas.slice(0, MAX);
+      const t0 = Math.floor(Math.min(...mallas.map((m) => m.inicio)) / 60) * 60;
+      const t1 = Math.ceil(Math.max(...mallas.map((m) => m.fin)) / 60) * 60;
+      const span = Math.max(60, t1 - t0);
+      const pct = (m) => (((m - t0) / span) * 100).toFixed(2);
+      const paso = span > 16 * 60 ? 240 : span > 8 * 60 ? 120 : 60;
+      const ticks = [];
+      for (let t = t0; t <= t1; t += paso) ticks.push(t);
+      const maxFuga = Math.max(1, ...mallas.map((m) => m.fugaMin / Math.max(1, m.dias)));
+      const fila = (m) => {
+        const trabajo = m.fin - m.inicio - m.refrigerio;
+        const r0 = m.inicio + Math.round(trabajo / 2);
+        const r1 = r0 + m.refrigerio;
+        const activa = anatMalla[dashboard] === m.id;
+        const fugaDia = m.fugaMin / Math.max(1, m.dias);
+        return `<button type="button" class="malla-fila ${activa ? 'activa' : ''}" data-malla="${esc(m.id)}" aria-pressed="${activa}"
+            aria-label="Malla ${m.etiqueta}, refrigerio ${m.refrigerio} minutos, ${m.dias} días, ${m.personas} personas. Ver en la anatomía.">
+          <span class="malla-hora"><b>${m.etiqueta}</b><small>${fmtDec1(m.horas)} h · refr. ${fmtMiles(m.refrigerio)} min</small></span>
+          <span class="malla-eje" aria-hidden="true">
+            <span class="malla-bloque" style="left:${pct(m.inicio)}%;width:${(pct(r0) - pct(m.inicio)).toFixed(2)}%"></span>
+            ${m.refrigerio ? `<span class="malla-refri" style="left:${pct(r0)}%;width:${(pct(r1) - pct(r0)).toFixed(2)}%"></span>` : ''}
+            <span class="malla-bloque" style="left:${pct(r1)}%;width:${(pct(m.fin) - pct(r1)).toFixed(2)}%"></span>
+          </span>
+          <span class="malla-num"><b>${fmtMiles(m.dias)}</b> días<small>${fmtPct(m.pctDias)} · ${fmtMiles(m.personas)} pers.</small></span>
+          <span class="malla-num malla-fuga"><b>${fmtDec1(fugaDia)}</b> min/día<small>fuga · ${fmtPct(m.pctTardanza)} tard.</small>
+            <span class="malla-medidor" aria-hidden="true"><span style="width:${((fugaDia / maxFuga) * 100).toFixed(1)}%"></span></span></span>
+        </button>`;
+      };
+      host.innerHTML = `
+        <div class="mallas-head">
+          <h4>Mallas horarias ${anatSuc[dashboard] ? `de ${esc(anatSuc[dashboard])}` : 'del filtro'}</h4>
+          <span class="nota">${fmtMiles(mallas.length)} ${mallas.length === 1 ? 'horario distinto' : 'horarios distintos'}, de la más usada a la menos · clic para verla en la jornada</span>
+        </div>
+        <div class="malla-reglas" aria-hidden="true"><span></span><span class="malla-eje malla-eje-reglas">${ticks.map((t) => `<i style="left:${pct(t)}%">${hhmm(t)}</i>`).join('')}</span><span></span><span></span></div>
+        <div class="malla-lista">${vis.map(fila).join('')}</div>
+        ${mallas.length > MAX ? `<button type="button" class="btn-link mas-filas" data-mallas-todas>${todas ? `Ver solo las ${MAX} más usadas` : `Ver las ${fmtMiles(mallas.length)} mallas`}</button>` : ''}`;
+      host.querySelectorAll('[data-malla]').forEach((b) => b.addEventListener('click', () => {
+        anatMalla[dashboard] = anatMalla[dashboard] === b.dataset.malla ? '' : b.dataset.malla;
+        pintarSelector();
+        pintar();
+        const nb = cont.querySelector(`[data-malla="${CSS.escape(b.dataset.malla)}"]`);
+        if (nb) nb.focus();
+      }));
+      const t = host.querySelector('[data-mallas-todas]');
+      if (t) t.addEventListener('click', () => { anatMallaTodas[dashboard] = !todas; pintarListaMallas(mallas); });
+    };
+    selSuc.addEventListener('change', () => { anatSuc[dashboard] = selSuc.value; anatMalla[dashboard] = ''; pintarSelector(); pintar(); });
+    selMalla.addEventListener('change', () => { anatMalla[dashboard] = selMalla.value; pintar(); });
+    pintarSelector();
     pintar();
   }
 
-  function anatomiaSVG(a) {
+  function anatomiaSVG(a, malla = null, suc = '') {
     if (!a || !a.turno) return '<p class="vacio">No hay turnos programados en el filtro para dibujar la jornada.</p>';
     const { inicio, fin, refrigerio } = a.turno;
     const P = Object.fromEntries(a.puntos.map((p) => [p.id, p]));
@@ -745,7 +827,9 @@ export function crearDashboards({ callWorker, getCfg }) {
     return `<div class="an-scroll"><svg class="an-svg" viewBox="0 0 ${W} 180" role="img" aria-label="Turno típico de ${hhmm(inicio)} a ${hhmm(fin)} con ${refrigerio} minutos de refrigerio">
         ${bloques}${horas}${marcasSVG}
       </svg></div>
-      <p class="an-frase">${frase} <span class="nota">Turno típico ${hhmm(inicio)}–${hhmm(fin)}, refrigerio de ${fmtMiles(refrigerio)} min (mediana de ${fmtMiles(a.turno.n)} turnos).</span></p>`;
+      <p class="an-frase">${frase} <span class="nota">${malla
+        ? `Malla ${malla.etiqueta}, refrigerio de ${fmtMiles(refrigerio)} min: ${fmtMiles(malla.dias)} días de ${fmtMiles(malla.personas)} personas (${fmtPct(malla.pctDias)} de los días con turno${suc ? ' de la sucursal' : ''}). <button type="button" class="btn-link" data-ver-malla>Ver a las ${fmtMiles(malla.personas)} personas de esta malla</button>`
+        : `Turno típico ${hhmm(inicio)}–${hhmm(fin)}, refrigerio de ${fmtMiles(refrigerio)} min (mediana de ${fmtMiles(a.turno.n)} turnos). Elige una malla horaria para ver un horario concreto.`}</span></p>`;
   }
 
   // ---- Prioridades -------------------------------------------------------------------
@@ -968,6 +1052,7 @@ export function crearDashboards({ callWorker, getCfg }) {
       sel.sucursal ? esc(sel.sucursal) : 'Todas las sucursales',
       sel.periodo ? periodoTexto(sel.periodo, sel.granularidad) : rangoTexto(dashboard),
       sel.keyId ? `Persona ${esc(sel.keyId)}` : '',
+      sel.malla ? `Malla ${mallaTexto(sel.malla)}` : '',
     ].filter(Boolean).join(' · ');
     const MAX = 400;
     const total = filas.length;
@@ -1077,7 +1162,7 @@ export function crearDashboards({ callWorker, getCfg }) {
     const { dashboard, sel, res } = ds;
     const r2 = (v) => (typeof v === 'number' ? +v.toFixed(2) : v ?? '');
     const personas = res.personas.map((p) => Object.fromEntries(COLS_PERSONA.map(([k]) => [k, r2(p[k])])));
-    const base = `Trabajadores_${slug(res.titulo)}${sel.sucursal ? '_' + slug(sel.sucursal) : ''}_${hoy()}`;
+    const base = `Trabajadores_${slug(res.titulo)}${sel.sucursal ? '_' + slug(sel.sucursal) : ''}${sel.malla ? '_malla_' + slug(sel.malla.split('|')[0]) : ''}_${hoy()}`;
     if (formato === 'csv') {
       exportarCSV(base, COLS_PERSONA.map((c) => c[0]), personas, COLS_PERSONA.map((c) => c[1]));
       return;
@@ -1090,6 +1175,7 @@ export function crearDashboards({ callWorker, getCfg }) {
       { campo: 'Sucursal seleccionada', valor: sel.sucursal || 'Todas' },
       { campo: 'Período seleccionado', valor: sel.periodo ? periodoTexto(sel.periodo, sel.granularidad) : rangoTexto(dashboard) },
       { campo: 'Persona', valor: sel.keyId || '' },
+      { campo: 'Malla horaria', valor: sel.malla ? mallaTexto(sel.malla) : 'Todas' },
       { campo: 'Rango del tablero', valor: rangoTexto(dashboard) },
       { campo: 'Filtro de sucursales', valor: f.sucursales.join(', ') || 'Todas' },
       { campo: 'Jefe', valor: f.jefes.join(', ') || 'Todos' },
@@ -1238,6 +1324,11 @@ function diasEntre(a, b) { return Math.round((dateDe(b) - dateDe(a)) / 86400000)
 function hhmm(min) {
   const m = ((Math.round(min) % 1440) + 1440) % 1440;
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+// "09:00-18:00|60" -> "09:00–18:00, refrigerio 60 min"
+function mallaTexto(id) {
+  const [h, r] = String(id).split('|');
+  return `${h.replace('-', '–')}, refrigerio ${r} min`;
 }
 function periodoTexto(clave, gran) {
   if (!clave) return '';

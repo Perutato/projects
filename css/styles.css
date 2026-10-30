@@ -325,7 +325,42 @@ p.nota { margin: 8px 0; }
 .an-marca:hover .an-id, .an-marca:focus-visible .an-id { fill: var(--acento); text-decoration: underline; }
 .an-marca:focus-visible .an-tick { stroke: var(--foco); stroke-width: 4; }
 .an-cero .an-dato { fill: var(--tenue); }
-.an-frase { font-size: 15px; margin-top: 8px; max-width: 900px; }
+.an-frase { font-size: 15px; margin-top: 8px; max-width: 980px; }
+.an-frase .btn-link { font-size: 12px; padding: 0; }
+.anat-sels { display: flex; gap: 12px; flex-wrap: wrap; flex: none; }
+.anat-sel select:disabled { opacity: .5; }
+.anat-sel [data-anat-malla] { min-width: 300px; max-width: 360px; }
+
+/* Mallas horarias: un horario por fila sobre un eje horario común */
+.mallas { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--borde); }
+.mallas:empty { display: none; }
+.mallas-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.mallas-head h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.malla-fila, .malla-reglas {
+  display: grid; grid-template-columns: 132px minmax(160px, 1fr) 112px 150px; gap: 16px; align-items: center;
+}
+.malla-reglas { height: 18px; padding: 0 8px 0 10px; } /* mismo margen que .malla-fila (borde 3px + 7px) */
+.malla-lista { display: flex; flex-direction: column; }
+.malla-fila {
+  width: 100%; text-align: left; background: none; border: none; border-left: 3px solid transparent;
+  border-top: 1px solid var(--borde); padding: 8px 8px 8px 7px; cursor: pointer; font-size: 13px;
+}
+.malla-fila:hover { background: #f3f5f8; }
+.malla-fila.activa { border-left-color: var(--acento); background: #eef2f6; }
+.malla-fila:focus-visible { outline-offset: -2px; }
+.malla-fila small { display: block; color: var(--tenue); font-size: 12px; }
+.malla-hora b { font-size: 14px; font-variant-numeric: tabular-nums; }
+.malla-num { text-align: right; font-variant-numeric: tabular-nums; }
+.malla-num b { font-size: 14px; }
+.malla-eje { position: relative; height: 14px; }
+.malla-eje-reglas { height: 18px; }
+.malla-eje-reglas i { position: absolute; top: 0; transform: translateX(-50%); font-style: normal; font-size: 11px; color: var(--tenue); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.malla-eje-reglas i::after { content: ""; position: absolute; left: 50%; top: 16px; width: 1px; height: 4px; background: var(--borde-fuerte); }
+.malla-bloque { position: absolute; top: 0; height: 14px; background: var(--dato); border-radius: 2px; opacity: .55; }
+.malla-fila.activa .malla-bloque, .malla-fila:hover .malla-bloque { opacity: 1; }
+.malla-refri { position: absolute; top: 5px; height: 4px; background: var(--borde-fuerte); }
+.malla-medidor { display: block; height: 3px; background: var(--hundido); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.malla-medidor span { display: block; height: 100%; background: var(--crit); }
 .an-frase .nota { display: block; margin-top: 4px; }
 
 /* ---- Prioridades ----------------------------------------------------------- */
@@ -495,7 +530,16 @@ p.nota { margin: 8px 0; }
   .dash-head-cifra { align-items: flex-start; text-align: left; }
   :root { --t-hero: 44px; --t-h1: 22px; }
 }
+@media (max-width: 760px) {
+  .malla-fila, .malla-reglas { grid-template-columns: 104px minmax(120px, 1fr) 96px; gap: 10px; }
+  .malla-fila .malla-fuga, .malla-reglas > span:last-child { display: none; }
+  .anat-sel [data-anat-malla] { min-width: 0; width: 100%; }
+  .anat-sels, .anat-sel { width: 100%; }
+}
 @media (max-width: 560px) {
+  .malla-fila { grid-template-columns: 92px minmax(0, 1fr) 70px; gap: 8px; }
+  .malla-reglas { display: none; }
+  .malla-num small { font-size: 11px; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tile-val { font-size: 22px; }
   .filtros-fila > .fgrupo { flex: 1 1 100%; }
